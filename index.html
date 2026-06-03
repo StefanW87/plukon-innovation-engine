@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Innovation Engine — Plukon Food Group</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #F1F8E9; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+
+// ── Plukon brand colours ──────────────────────────────────────────────────────
+// Green #2E7D32 (dark) / #4CAF50 (mid) / #81C784 (light)
+// Orange #F57C00 (dark) / #FF9800 (mid) / #FFB74D (light)
+// White / off-white backgrounds
+
+const STEPS = [
+  { id:"retailer",    label:"Retailer / Klant",      icon:"🏪" },
+  { id:"country",     label:"Land & Markt",           icon:"🌍" },
+  { id:"trends",      label:"Macro Trends",           icon:"📈" },
+  { id:"format",      label:"Productformat",          icon:"🍽️" },
+  { id:"ingredients", label:"Ingrediënten Richting",  icon:"🌿" },
+  { id:"quality",     label:"Kwaliteitseisen",        icon:"✅" },
+  { id:"specs",       label:"Product Specs",          icon:"📐" },
+  { id:"nutrition",   label:"Nutritie & Nutriscore",  icon:"🥗" },
+  { id:"brief",       label:"Extra Brief",            icon:"📝" },
+];
+
+const RETAILERS    = ["Albert Heijn","Jumbo","Lidl","Aldi","Plus","Picnic","Delhaize","Tesco","REWE","Edeka","Waitrose","M&S","Anders / Vrij"];
+const COUNTRIES    = ["Nederland","België","Duitsland","Verenigd Koninkrijk","Frankrijk","Zweden","Polen","Spanje","Italië","VS","Anders"];
+const TRENDS = [
+  "High Protein / Fitness","Plant-Based / Vegan","Gut Health / Fermented",
+  "Low Carb / Keto","Comfort Food Revival","Street Food Discovery",
+  "Maximalist Flavors","Nutrition Meets Tradition","Crafted Condiments",
+  "Craveable Texture","Ultra-convenience","Clean Label / Minimal Ingredients",
+  "Functional Foods","Premiumisering","Value for Money",
+  "Sustainability / Low Waste","Snackification","Ethnisch / Authentiek",
+  "Swicy (Sweet+Spicy)","Korean / Asian Fusion","Pickle & Ferment",
+];
+const FORMATS      = ["Ready to Eat (RTE)","Ready to Heat (RTH)","Ready to Cook (RTC)","Meal Kit","Snack / On-the-go","Side Dish","Breakfast","Dessert","Salade / Koude Maaltijd","Soep","Steam Meal","Vrij / AI kiest"];
+const INGREDIENT_DIRS = ["Gevogelte (kip/kalkoen)","Rood vlees (rund/lam)","Vis & Zeevruchten","Vegetarisch","Vegan / Plantaardig","Peulvruchten & Granen","Zuivel-gebaseerd","Ei-gebaseerd","Exotisch / Onbekend","Vrij / AI kiest"];
+const QUALITY_TIERS = [
+  { id:"economy",    label:"Economy / Budget",                   desc:"Maximale kostefficiëntie, simpele specs" },
+  { id:"mainstream", label:"Mainstream",                         desc:"Standaard retailkwaliteit, brede acceptatie" },
+  { id:"premium",    label:"Premium / Retailmerk A-merk niveau", desc:"Hogere ingrediëntkwaliteit, onderscheidend" },
+  { id:"ultra",      label:"Ultra Premium / Specialty",          desc:"Finest quality, bijzondere grondstoffen" },
+];
+const PRICE_RANGES = ["< €2","€2–3","€3–4","€4–5","€5–6","€6–8","€8–10","€10+","Vrij / AI kiest"];
+const GRAMMAGES    = ["< 200g","200–300g","300–400g","400–500g","500–650g","650–800g","800g+","Vrij / AI kiest"];
+const PERSONS      = ["1 persoon","2 personen","3–4 personen","Familie (4+)","Sharing","Vrij / AI kiest"];
+const SHELF_LIFE   = [
+  { id:"uv",  label:"Ultravers",          desc:"Tot ca. 5 dagen" },
+  { id:"v",   label:"Vers",               desc:"Tot ca. 8 dagen" },
+  { id:"h",   label:"Hybride",            desc:"Tot ca. 12 dagen" },
+  { id:"lv",  label:"Langer vers",        desc:"12+ dagen" },
+  { id:"amb", label:"Ambient / Diepvries",desc:"Lang houdbaar" },
+  { id:"vr",  label:"Vrij",               desc:"Concept bepaalt" },
+];
+const SKU_OPTIONS  = ["1 SKU","2 SKU's","3 SKU's","4–5 SKU's","6–8 SKU's","8+ SKU's","Vrij / AI kiest"];
+const NUTRISCORE_TARGET = ["A (ideaal)","B","C","Geen voorkeur / AI kiest"];
+const SALT_PREF    = ["Laag (<0,8g/100g)","Matig (0,8–1,2g/100g)","Vrij / AI kiest"];
+const PROTEIN_PREF = [">20g/portie",">25g/portie",">30g/portie","Vrij / AI kiest"];
+const VEG_PREF     = [">30% groente",">40% groente",">50% groente","Vrij / AI kiest"];
+
+// ──  / Plukon trend context (from uploaded PDF) ─────────────────────
+const TREND_CONTEXT = `
+2026 TREND INTELLIGENCE — SUMMER EATING INSPIRATIONS:
+
+KEY MACRO TRENDS:
+1. Powered by Protein: 60% EU consumers increased protein intake; 87% have health gaps to fill. Multi-benefit personalised nutrition. Bold formats + global seasonings. Hybrid protein sources (fava, lupin, seaweed, hemp).
+2. Craveable Texture: 41% like unusual textures. Cheese pulls, crunchy coatings, crispy elements drive viral moments. 2 in 3 say appealing texture signals premium.
+3. Street Food Discovery: Europe +21% growth. Asian street food +50% YoY. 61% seek novel flavours. Swicy profiles, yuzu, gochujang, chamoy, mango jalapeño.
+4. Maximalist Flavors: "More is More." Sweet +109% YoY, umami +79%, smoky +46%. Swicy +60% new launches. Layered builds, double curries, umami-on-umami stacking.
+5. Nutrition Meets Tradition: 60% pay closer attention to ingredient lists. Clean label = trusted. Fermented ingredients, carb swaps, umami as salt reducer (shio koji, mushroom powder).
+6. Crafted Condiments: +35% premium condiment launches since 2015. 88% say sauces enhance flavour. Limited editions, clean labels, authentic origins.
+
+CONSUMER DRIVERS:
+- Everyday Economists: meals must stretch, taste good, look good. Min Effort / Max Reward.
+- 2 in 3 EU shoppers want meals ready in under 30 minutes.
+- 76% say restaurant experiences influence retail choices.
+- 68% want "100% Natural" groceries. 39% define clean label as natural ingredients.
+- 87% EU consumers look for products that proactively support health.
+
+FLAVOUR TRENDS 2026 (FlavorIQ(R)):
+- "Swangy": Chamoy, chilli-citrus, salted honey chilli, miso caramel, mango jalapeño.
+- Asia-Led: Yuzu, koji, sudachi, ponzu, togarashi, Japanese BBQ.
+- Regional Fried Chicken: Korean gochugaru, Middle Eastern, Latin, hot honey.
+- Pickle trend: Gen Z — less than 2% believe it has peaked.
+- Mexican: 75% EU consumers want more Mexican flavour offerings.
+
+DUTCH MARKET SPECIFICS:
+- BBQ and Paprika: mature/high exposure. Asian, Mediterranean: growing strongly. Korean, Italian: emerging.
+- High nut consumption. Openness to Asian and wider global inspiration growing fast.
+
+CLEAN LABEL STANDAARD:
+- No declarable E-numbers, no gums, no flavours (artificial or natural), no added colours, no MSG/HVP, no yeast extracts, no modified starch, no allergens (unless inherent to taste). Short ingredient list. Recognisable store-cupboard ingredients. Supports Nutriscore improvement and Non-HFSS.
+
+CONCEPT INSPIRATIE:
+- Chilli Cinnamon Overnight Protein Oats with Mango (Breakfast, Powered by Protein, Clean Label)
+- Japanese Yuzu Chicken Steam Meal (Lunch/Dinner, Street Food Discovery, umami-rich)
+- Post-workout Chicken Chickpea Recovery Pot (Snack, Protein, Persian Sabzi + Harissa)
+- Hot Chicks Snack Bowl (Snack, Peri-Peri + Ranch, black rice, younger consumer)
+- Pickle Green Goddess (Lunch/Dinner, Maximalist, Honey Mustard + Pickled Onion)
+- Chicken Summer Tagliata (Lunch, Lemon Pepper Rub, Limonata Mayo, Clean Label)
+- Mexican Chilli & Lime Chicken Tortilla (Lunch/Dinner, Street Food Discovery)
+`;
+
+const DEMO_CONCEPTS = [
+  {
+    id:1, name:"Power Bowl Kip Teriyaki & Quinoa", tagline:"Sterk. Snel. Smaakvol.",
+    image:"https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=80",
+    nutriscore:"A", protein:"35g", salt:"0,6g",
+    plateColors:[
+      { name:"Kip", color:"#C8A165", pct:28 },
+      { name:"Quinoa", color:"#E8D5A0", pct:22 },
+      { name:"Spinazie", color:"#4CAF50", pct:18 },
+      { name:"Edamame", color:"#81C784", pct:14 },
+      { name:"Paprika", color:"#EF5350", pct:12 },
+      { name:"Saus", color:"#A1682A", pct:6 },
+    ],
+    summary:"Gekoelde RTE maaltijdbowl met gegrilde kipfilet in lichte teriyakisaus op quinoa, edamame, geroosterde paprika en babyspinazie. 35g eiwit per portie, geen kunstmatige toevoegingen.",
+    consumer:"25–40 jaar, sportief en druk. Koopt na het sporten of als snelle lunch.",
+    ingredients:"Kipfilet (28%), quinoa, edamame, paprika, spinazie, teriyakisaus (soja, gember, honing), sesamzaad. Allergenen: soja, sesam, gluten.",
+    specs:{ grammage:"400g", prijs:"€4,99", houdbaarheid:"Vers, 7 dagen", skus:"3 SKU's — ook Zalm Miso & Kalkoen Pesto" },
+    trend:"Powered by Protein + Street Food Discovery + Nutrition Meets Tradition",
+    retail:"AH Excellent segment. Clean label, Teriyaki marinade. Nutriscore A haalbaar.",
+    challenge:"Quinoa inkoop prijsgevoelig. Teriyakisaus clean label houden (max 5 ingrediënten).",
+  },
+  {
+    id:2, name:"Pickle Green Goddess Bowl", tagline:"Zuur. Fris. Onweerstaanbaar.",
+    image:"https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&q=80",
+    nutriscore:"B", protein:"28g", salt:"0,7g",
+    plateColors:[
+      { name:"Kip", color:"#C8A165", pct:26 },
+      { name:"Zwarte rijst", color:"#4A235A", pct:20 },
+      { name:"Edamame", color:"#66BB6A", pct:16 },
+      { name:"Radijs", color:"#E53935", pct:12 },
+      { name:"Komkommer", color:"#A5D6A7", pct:12 },
+      { name:"Green Goddess", color:"#2E7D32", pct:8 },
+      { name:"Pickled onion", color:"#CE93D8", pct:6 },
+    ],
+    summary:"Verse kip met honey mustard & pickled onion seasoning, green goddess saus, zwarte rijst, radijs en edamame. Inspireert op de razendpopulaire pickle-trend — minder dan 2% van Gen Z denkt dat die heeft gepiekt.",
+    consumer:"20–35 jaar, Gen Z / young millennial. Social media foodie, zoekt avontuurlijke maar toegankelijke smaken.",
+    ingredients:"Kipfilet (26%), zwarte rijst, edamame, radijs, komkommer, pickled onion, green goddess saus (basilicum, yoghurt, citroen). Allergenen: melk.",
+    specs:{ grammage:"380g", prijs:"€4,79", houdbaarheid:"Vers, 6 dagen", skus:"3 SKU's — ook Pickle Ranch & Pickle Caesar" },
+    trend:"Maximalist Flavors + Crafted Condiments + Pickle & Ferment",
+    retail:"AH Snack/Lunch segment. Honey Mustard & Pickled Onion seasoning + Green Goddess Sauce.",
+    challenge:"Zure ingrediënten beïnvloeden houdbaarheid rijst. Verpakking dual-compartiment adviseren.",
+  },
+  {
+    id:3, name:"Kip Tikka Protein Wrap", tagline:"Wereldsmaak. Sportieve kern.",
+    image:"https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=600&q=80",
+    nutriscore:"A", protein:"32g", salt:"0,8g",
+    plateColors:[
+      { name:"Kip tikka", color:"#FF7043", pct:30 },
+      { name:"Wrap", color:"#FFE0B2", pct:20 },
+      { name:"Labneh", color:"#F5F5F5", pct:14 },
+      { name:"Rode kool", color:"#7B1FA2", pct:14 },
+      { name:"Komkommer", color:"#A5D6A7", pct:12 },
+      { name:"Munt/raita", color:"#81C784", pct:10 },
+    ],
+    summary:"Verse wrap met gemarineerde kip tikka, labneh, komkommer-muntraita en knapperige rode kool. 32g eiwit, licht pittig, geen toegevoegd suiker. Clean label, geen E-nummers.",
+    consumer:"20–35 jaar, avontuurlijk en gezondheidsbewust. Post-workout of lunchoplossing.",
+    ingredients:"Kiptikka (30%, yoghurt-kruiden marinade), volkoren wrap, labneh, rode kool, komkommer, verse munt, raita. Allergenen: gluten, melk.",
+    specs:{ grammage:"350g", prijs:"€5,29", houdbaarheid:"Vers, 5 dagen", skus:"3 SKU's — ook Caesar & Falafel variant" },
+    trend:"Powered by Protein + Ethnisch / Authentiek + Clean Label + Nutrition Meets Tradition",
+    retail:"AH Excellent, koelvers-to-go. Madras Curry / Persian Sabzi seasoning toepasbaar.",
+    challenge:"Wrap niet laten doorweken — labneh en raita gescheiden houden tot opening.",
+  },
+];
+
+// ── Reusable UI components ───────────────────────────────────────────────────
+const G = "#2E7D32";   // Plukon dark green
+const GM = "#4CAF50";  // Plukon mid green
+const GL = "#E8F5E9";  // Plukon light green bg
+const O  = "#F57C00";  // Plukon orange
+const OM = "#FF9800";  // Plukon mid orange
+const OL = "#FFF3E0";  // Plukon light orange bg
+
+function Tag({ label, selected, onClick }) {
+  return (
+    <button onClick={onClick} style={{
+      padding:"7px 14px", borderRadius:"20px",
+      border:`2px solid ${selected ? G : "#C8E6C9"}`,
+      background: selected ? G : "#fff",
+      color: selected ? "#fff" : "#388E3C",
+      fontSize:"13px", fontFamily:"'Nunito', sans-serif",
+      cursor:"pointer", fontWeight: selected ? "700" : "500",
+      transition:"all 0.15s", letterSpacing:"0.01em",
+      boxShadow: selected ? "0 2px 8px rgba(46,125,50,0.25)" : "none",
+    }}>{label}</button>
+  );
+}
+
+function StepDot({ steps, currentStep, completedSteps }) {
+  return (
+    <div style={{ display:"flex", gap:"4px", marginBottom:"28px", flexWrap:"wrap", alignItems:"center" }}>
+      {steps.map((s, i) => {
+        const done = completedSteps.includes(s.id);
+        const active = i === currentStep;
+        return (
+          <div key={s.id} style={{ display:"flex", alignItems:"center", gap:"4px" }}>
+            <div style={{
+              width:"30px", height:"30px", borderRadius:"50%",
+              background: done ? G : active ? OL : "#F5F5F5",
+              border:`2px solid ${done ? G : active ? O : "#E0E0E0"}`,
+              display:"flex", alignItems:"center", justifyContent:"center",
+              fontSize:"11px", color: done ? "#fff" : active ? O : "#9E9E9E",
+              fontWeight:"800", fontFamily:"monospace", transition:"all 0.2s",
+              boxShadow: active ? `0 0 0 4px ${OL}` : "none",
+            }}>
+              {done ? "✓" : i+1}
+            </div>
+            {i < steps.length-1 && <div style={{ width:"12px", height:"2px", background: done ? GM : "#E0E0E0", borderRadius:"1px" }} />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function NutriScoreBadge({ score }) {
+  const colors = { A:"#00843D", B:"#85BB2F", C:"#FFCC00", D:"#FF6600", E:"#E63312" };
+  const bg = colors[score] || "#999";
+  return (
+    <span style={{
+      display:"inline-flex", alignItems:"center", gap:"4px",
+      background:bg, color:"#fff", borderRadius:"6px",
+      padding:"3px 10px", fontSize:"12px", fontWeight:"800",
+      fontFamily:"'Nunito', sans-serif", letterSpacing:"0.05em",
+    }}>
+      NUTRI-SCORE {score}
+    </span>
+  );
+}
+
+
+// ── Plate Colour Meter ────────────────────────────────────────────────────────
+// Shows a visual "plate" with colour segments representing ingredients
+function PlateColorMeter({ colors }) {
+  // colors = array of { name, color, pct } — must sum to ~100
+  const size = 120;
+  const cx = size / 2, cy = size / 2, r = 46, innerR = 22;
+  let cumAngle = -Math.PI / 2;
+
+  const segments = colors.map(c => {
+    const angle = (c.pct / 100) * 2 * Math.PI;
+    const x1 = cx + r * Math.cos(cumAngle);
+    const y1 = cy + r * Math.sin(cumAngle);
+    cumAngle += angle;
+    const x2 = cx + r * Math.cos(cumAngle);
+    const y2 = cy + r * Math.sin(cumAngle);
+    const ix1 = cx + innerR * Math.cos(cumAngle - angle);
+    const iy1 = cy + innerR * Math.sin(cumAngle - angle);
+    const ix2 = cx + innerR * Math.cos(cumAngle);
+    const iy2 = cy + innerR * Math.sin(cumAngle);
+    const large = angle > Math.PI ? 1 : 0;
+    const path = `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} L ${ix2} ${iy2} A ${innerR} ${innerR} 0 ${large} 0 ${ix1} ${iy1} Z`;
+    return { ...c, path };
+  });
+
+  // count distinct hues as proxy for visual diversity
+  const diversity = colors.length;
+  const diversityLabel = diversity >= 5 ? "Zeer kleurrijk" : diversity >= 4 ? "Kleurrijk" : diversity >= 3 ? "Matig kleurrijk" : "Weinig kleur";
+  const diversityColor = diversity >= 5 ? "#2E7D32" : diversity >= 4 ? "#F57C00" : diversity >= 3 ? "#FBC02D" : "#E53935";
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"8px" }}>
+      <p style={{ margin:0, fontSize:"11px", color:"#888", fontFamily:"'Nunito',sans-serif", fontWeight:"700", letterSpacing:"0.08em", textTransform:"uppercase" }}>🎨 Bord sfeerbeeld</p>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        {/* plate background */}
+        <circle cx={cx} cy={cy} r={r+6} fill="#F5F5F5" stroke="#E0E0E0" strokeWidth="1"/>
+        {segments.map((s,i)=>(
+          <path key={i} d={s.path} fill={s.color} stroke="#fff" strokeWidth="1.5"/>
+        ))}
+        {/* center white circle */}
+        <circle cx={cx} cy={cy} r={innerR-1} fill="#fff" stroke="#F0F0F0" strokeWidth="1"/>
+      </svg>
+      {/* legend */}
+      <div style={{ display:"flex", flexWrap:"wrap", gap:"4px", justifyContent:"center", maxWidth:"200px" }}>
+        {colors.map(c=>(
+          <div key={c.name} style={{ display:"flex", alignItems:"center", gap:"3px" }}>
+            <div style={{ width:"8px", height:"8px", borderRadius:"50%", background:c.color, flexShrink:0 }}/>
+            <span style={{ fontSize:"10px", color:"#666", fontFamily:"'Nunito',sans-serif" }}>{c.name}</span>
+          </div>
+        ))}
+      </div>
+      <span style={{ fontSize:"11px", fontWeight:"800", color:diversityColor, fontFamily:"'Nunito',sans-serif" }}>{diversityLabel}</span>
+    </div>
+  );
+}
+
+
+// ── AI Product Photo via Pollinations.ai (free, no API key) ──────────────────
+function generateImageUrl(concept) {
+  const prompt = encodeURIComponent(
+    `professional food photography, top-down flat lay, ${concept.name}, ${concept.summary?.split(".")[0]}, ` +
+    `fresh ingredients, white plate, clean background, studio lighting, ultra realistic, ` +
+    `vibrant colors, food magazine quality, 4k`
+  );
+  return `https://image.pollinations.ai/prompt/${prompt}?width=600&height=400&nologo=true&seed=${concept.id * 1234}`;
+}
+
+function ProductImage({ concept }) {
+  const [loaded, setLoaded] = useState(false);
+  const [error,  setError]  = useState(false);
+  const url = generateImageUrl(concept);
+
+  return (
+    <div style={{ position:"relative", height:"210px", overflow:"hidden", background:"#F5F5F5" }}>
+      {!loaded && !error && (
+        <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:"10px" }}>
+          <div style={{ width:"32px", height:"32px", border:`3px solid #E8F5E9`, borderTop:`3px solid #4CAF50`, borderRadius:"50%", animation:"spin 0.9s linear infinite" }}/>
+          <span style={{ fontSize:"11px", color:"#aaa", fontFamily:"'Nunito',sans-serif" }}>Productfoto genereren...</span>
+        </div>
+      )}
+      {error && (
+        <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
+          <img src={concept.image} alt={concept.name} style={{ width:"100%", height:"100%", objectFit:"cover", opacity:0.7 }} />
+        </div>
+      )}
+      <img
+        src={url}
+        alt={concept.name}
+        onLoad={()=>setLoaded(true)}
+        onError={()=>setError(true)}
+        style={{ width:"100%", height:"100%", objectFit:"cover", opacity: loaded ? 1 : 0, transition:"opacity 0.4s" }}
+      />
+      <div style={{ position:"absolute", inset:0, background:"linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.5) 100%)" }} />
+      <div style={{ position:"absolute", top:"12px", left:"12px", display:"flex", gap:"6px" }}>
+        <span style={{ background:"#F57C00", color:"#fff", borderRadius:"6px", padding:"3px 10px", fontSize:"11px", fontWeight:"800", fontFamily:"'Nunito',sans-serif" }}>
+          NPC 0{concept.id}
+        </span>
+        <span style={{ background:"rgba(255,255,255,0.9)", color:"#2E7D32", borderRadius:"6px", padding:"3px 10px", fontSize:"11px", fontWeight:"700", fontFamily:"'Nunito',sans-serif" }}>
+          AI FOTO
+        </span>
+      </div>
+      <div style={{ position:"absolute", bottom:"12px", left:"12px" }}>
+        <NutriScoreBadge score={concept.nutriscore} />
+      </div>
+    </div>
+  );
+}
+
+function DemoCard({ concept }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{
+      background:"#fff", borderRadius:"16px", overflow:"hidden",
+      boxShadow:"0 4px 20px rgba(0,0,0,0.08)", marginBottom:"20px",
+      border:"1px solid #E8F5E9", transition:"box-shadow 0.2s, transform 0.2s",
+    }}
+      onMouseEnter={e=>{ e.currentTarget.style.boxShadow="0 8px 32px rgba(46,125,50,0.15)"; e.currentTarget.style.transform="translateY(-2px)"; }}
+      onMouseLeave={e=>{ e.currentTarget.style.boxShadow="0 4px 20px rgba(0,0,0,0.08)"; e.currentTarget.style.transform="translateY(0)"; }}
+    >
+      <ProductImage concept={concept} />
+
+      <div style={{ padding:"16px 20px 12px" }}>
+        <h3 style={{ margin:"0 0 2px", fontFamily:"'Nunito', sans-serif", fontWeight:"800", fontSize:"18px", color:"#1B5E20" }}>{concept.name}</h3>
+        <p style={{ margin:0, color:O, fontSize:"13px", fontFamily:"'Nunito',sans-serif", fontStyle:"italic", fontWeight:"600" }}>{concept.tagline}</p>
+      </div>
+
+      <div style={{ display:"flex", borderTop:"1px solid #F1F8E9", borderBottom:"1px solid #F1F8E9" }}>
+        {[["⚖️",concept.specs.grammage],["💶",concept.specs.prijs],["🥩",`${concept.protein} eiwit`],["🧂",`${concept.salt}g zout`]].map(([icon,val],i)=>(
+          <div key={i} style={{ flex:1, padding:"10px 6px", textAlign:"center", borderRight:i<3?"1px solid #F1F8E9":"none" }}>
+            <div style={{ fontSize:"13px", marginBottom:"2px" }}>{icon}</div>
+            <div style={{ fontSize:"11px", color:"#388E3C", fontFamily:"'Nunito',sans-serif", fontWeight:"700" }}>{val}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ padding:"12px 20px" }}>
+        <p style={{ margin:0, color:"#555", fontSize:"13px", fontFamily:"'Nunito',sans-serif", lineHeight:"1.7" }}>{concept.summary}</p>
+      </div>
+
+      <div onClick={()=>setOpen(!open)} style={{ padding:"10px 20px", cursor:"pointer", display:"flex", alignItems:"center", gap:"8px", borderTop:"1px solid #F1F8E9", background:"#FAFAFA" }}>
+        <span style={{ color:G, fontSize:"12px", fontFamily:"'Nunito',sans-serif", fontWeight:"700", letterSpacing:"0.06em", textTransform:"uppercase" }}>
+          {open ? "Minder details" : "Meer details"}
+        </span>
+        <span style={{ color:G, fontSize:"14px" }}>{open ? "▲" : "▼"}</span>
+      </div>
+
+      {open && (
+        <div style={{ padding:"0 20px 20px", display:"flex", flexDirection:"column", gap:"12px", marginTop:"12px" }}>
+          {concept.plateColors && (
+            <div style={{ display:"flex", justifyContent:"center", padding:"12px 0", borderBottom:"1px solid #F1F8E9" }}>
+              <PlateColorMeter colors={concept.plateColors} />
+            </div>
+          )}
+          {[
+            ["🎯 Doelconsument", concept.consumer],
+            ["🌿 Ingrediënten",  concept.ingredients],
+            ["📦 SKU structuur", concept.specs.skus],
+            ["📈 Trend",         concept.trend],
+            ["🏪 Retailfit",     concept.retail],
+            ["⚠️ Aandachtspunten", concept.challenge],
+          ].map(([label,value])=>(
+            <div key={label}>
+              <p style={{ margin:"0 0 3px", fontSize:"11px", color:G, fontFamily:"'Nunito',sans-serif", fontWeight:"800", letterSpacing:"0.08em", textTransform:"uppercase" }}>{label}</p>
+              <p style={{ margin:0, fontSize:"13px", color:"#555", fontFamily:"'Nunito',sans-serif", lineHeight:"1.6" }}>{value}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ConceptCard({ concept, index }) {
+  const [open, setOpen] = useState(true); // open by default
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgError, setImgError] = useState(false);
+
+  const lines = concept.split("\n").filter(Boolean);
+
+  // Parse title and tagline
+  const titleLine = lines[0]?.replace(/^#+\s*/,"").replace(/\*\*/g,"") || `Concept ${index+1}`;
+  const [titleName, tagline] = titleLine.includes(" — ") ? titleLine.split(" — ") : [titleLine, ""];
+
+  // Parse sections
+  const sections = {};
+  let currentSection = null;
+  let currentLines = [];
+  const sectionNames = ["Samenvatting","Doelconsument","Ingrediënten","Nutritie","Specs","Trends","Retailfit","Haalbaarheid","Aandachtspunten"];
+  
+  lines.slice(1).forEach(line => {
+    const clean = line.replace(/\*\*/g,"").trim();
+    if (sectionNames.includes(clean)) {
+      if (currentSection) sections[currentSection] = currentLines.join("\n").trim();
+      currentSection = clean;
+      currentLines = [];
+    } else if (currentSection) {
+      currentLines.push(line);
+    }
+  });
+  if (currentSection) sections[currentSection] = currentLines.join("\n").trim();
+
+  // Build image prompt from title + samenvatting
+  const summaryText = (sections["Samenvatting"] || titleName).replace(/\*\*/g,"").slice(0,100);
+  const imgPrompt = encodeURIComponent(
+    `professional food photography top-down flat lay ${titleName} ${summaryText} fresh colorful ingredients white plate studio lighting ultra realistic vibrant food magazine quality`
+  );
+  const imgUrl = `https://image.pollinations.ai/prompt/${imgPrompt}?width=800&height=420&nologo=true&seed=${(index+1)*7777}`;
+
+  const renderSection = (text) => {
+    if (!text) return <span style={{color:"#ccc",fontSize:"12px",fontStyle:"italic"}}>—</span>;
+    return text.split("\n").map((line, i) => {
+      if (!line.trim()) return null;
+      const isBullet = line.trim().startsWith("-") || line.trim().startsWith("•");
+      const clean = line.replace(/^[-•]\s*/,"").replace(/\*\*/g,"").trim();
+      if (!clean) return null;
+      return (
+        <p key={i} style={{ margin:"3px 0", fontSize:"13px", fontFamily:"'Nunito',sans-serif", color:"#555", lineHeight:"1.65", paddingLeft: isBullet?"12px":"0" }}>
+          {isBullet ? `• ${clean}` : clean}
+        </p>
+      );
+    });
+  };
+
+  return (
+    <div style={{ background:"#fff", border:"1px solid #E8F5E9", borderRadius:"16px", overflow:"hidden", marginBottom:"20px", boxShadow:"0 4px 16px rgba(0,0,0,0.07)" }}>
+
+      {/* AI Photo — always visible */}
+      <div style={{ position:"relative", height:"220px", background:"linear-gradient(135deg,#E8F5E9,#FFF8E1)", overflow:"hidden" }}>
+        {!imgLoaded && !imgError && (
+          <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:"10px" }}>
+            <div style={{ width:"32px", height:"32px", border:"3px solid #C8E6C9", borderTop:`3px solid ${G}`, borderRadius:"50%", animation:"spin 0.9s linear infinite" }}/>
+            <span style={{ fontSize:"12px", color:"#aaa", fontFamily:"'Nunito',sans-serif", fontWeight:"600" }}>Productfoto genereren...</span>
+          </div>
+        )}
+        <img src={imgUrl} alt={titleName}
+          onLoad={()=>setImgLoaded(true)}
+          onError={()=>setImgError(true)}
+          style={{ width:"100%", height:"100%", objectFit:"cover", opacity:imgLoaded?1:0, transition:"opacity 0.6s" }}
+        />
+        <div style={{ position:"absolute", inset:0, background:"linear-gradient(to bottom, transparent 35%, rgba(0,0,0,0.55) 100%)" }}/>
+        <div style={{ position:"absolute", top:"14px", left:"14px", display:"flex", gap:"6px", alignItems:"center" }}>
+          <span style={{ background:O, color:"#fff", borderRadius:"8px", padding:"4px 12px", fontSize:"12px", fontWeight:"900", fontFamily:"'Nunito',sans-serif", letterSpacing:"0.04em" }}>NPC {String(index+1).padStart(2,"0")}</span>
+          {!imgError && imgLoaded && <span style={{ background:"rgba(255,255,255,0.88)", color:G, borderRadius:"6px", padding:"3px 9px", fontSize:"10px", fontWeight:"700", fontFamily:"'Nunito',sans-serif" }}>AI FOTO</span>}
+        </div>
+        <div style={{ position:"absolute", bottom:"14px", left:"14px", right:"14px" }}>
+          <h3 style={{ color:"#fff", fontFamily:"'Nunito',sans-serif", fontWeight:"900", fontSize:"18px", margin:"0 0 2px", textShadow:"0 1px 4px rgba(0,0,0,0.4)" }}>{titleName}</h3>
+          {tagline && <p style={{ color:"rgba(255,255,255,0.85)", fontFamily:"'Nunito',sans-serif", fontSize:"13px", margin:0, fontStyle:"italic", fontWeight:"600" }}>{tagline}</p>}
+        </div>
+      </div>
+
+      {/* Quick stats bar — pulled from Nutritie + Specs sections */}
+      <div style={{ display:"flex", borderBottom:"1px solid #F1F8E9" }}>
+        {[
+          ["⚖️", sections["Specs"]?.match(/Grammage[:\s]+([\d]+g)/)?.[1] || "—"],
+          ["💶", sections["Specs"]?.match(/Prijs[:\s]+(€[\d,]+)/)?.[1] || "—"],
+          ["💪", sections["Nutritie"]?.match(/Eiwit[:\s]+([\d]+g)/)?.[1] || "—"],
+          ["🏅", sections["Nutritie"]?.match(/Nutriscore[:\s]+([A-E])/)?.[1] ? `Score ${sections["Nutritie"].match(/Nutriscore[:\s]+([A-E])/)[1]}` : "—"],
+        ].map(([icon,val],i)=>(
+          <div key={i} style={{ flex:1, padding:"10px 6px", textAlign:"center", borderRight:i<3?"1px solid #F1F8E9":"none" }}>
+            <div style={{ fontSize:"14px", marginBottom:"2px" }}>{icon}</div>
+            <div style={{ fontSize:"11px", color:"#388E3C", fontFamily:"'Nunito',sans-serif", fontWeight:"800" }}>{val}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Toggle header */}
+      <div onClick={()=>setOpen(!open)} style={{ padding:"12px 20px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center", background:"#FAFAFA", borderBottom: open?"1px solid #F1F8E9":"none" }}>
+        <span style={{ fontSize:"12px", fontWeight:"800", color:G, fontFamily:"'Nunito',sans-serif", letterSpacing:"0.06em", textTransform:"uppercase" }}>{open ? "Verberg details" : "Bekijk volledige analyse"}</span>
+        <span style={{ color:G, fontSize:"14px" }}>{open?"▲":"▼"}</span>
+      </div>
+      {open && (
+        <div style={{ padding:"20px" }}>
+          {["Samenvatting","Doelconsument","Ingrediënten","Nutritie","Specs","Trends","Retailfit","Haalbaarheid","Aandachtspunten"].map(sec => (
+            <div key={sec} style={{ marginBottom:"16px", paddingBottom:"16px", borderBottom:"1px solid #F9FBE7" }}>
+              <p style={{ margin:"0 0 6px", fontSize:"11px", fontWeight:"900", color:G, fontFamily:"'Nunito',sans-serif", letterSpacing:"0.08em", textTransform:"uppercase" }}>
+                {{"Samenvatting":"📋 Samenvatting","Doelconsument":"🎯 Doelconsument","Ingrediënten":"🌿 Ingrediënten","Nutritie":"🥗 Nutritie","Specs":"📦 Product Specs","Trends":"📈 Trend Aansluiting","Retailfit":"🏪 Retailfit","Haalbaarheid":"⚙️ Haalbaarheid","Aandachtspunten":"⚠️ Aandachtspunten"}[sec]}
+              </p>
+              <div>{renderSection(sections[sec])}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
+// ── API Key Gate ─────────────────────────────────────────────────────────────
+function ApiKeyScreen({ onSave }) {
+  const [key, setKey] = React.useState("");
+  const [error, setError] = React.useState("");
+  const [testing, setTesting] = React.useState(false);
+
+  const testAndSave = async () => {
+    if (!key.startsWith("sk-ant-")) {
+      setError("Sleutel moet beginnen met sk-ant-...");
+      return;
+    }
+    setTesting(true);
+    setError("");
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": key,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
+        body: JSON.stringify({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 10,
+          messages: [{ role: "user", content: "Hi" }],
+        }),
+      });
+      if (res.ok) {
+        localStorage.setItem("plukon_api_key", key);
+        onSave(key);
+      } else {
+        const d = await res.json();
+        setError("Ongeldige sleutel: " + (d?.error?.message || res.status));
+      }
+    } catch (e) {
+      setError("Verbindingsfout: " + e.message);
+    }
+    setTesting(false);
+  };
+
+  return (
+    <div style={{ minHeight:"100vh", background:"linear-gradient(160deg,#F1F8E9 0%,#FFF8E1 100%)", display:"flex", alignItems:"center", justifyContent:"center", padding:"24px", fontFamily:"'Nunito',sans-serif" }}>
+      <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+      <div style={{ background:"#fff", borderRadius:"20px", padding:"40px", maxWidth:"440px", width:"100%", boxShadow:"0 8px 40px rgba(0,0,0,0.1)", border:"1px solid #E8F5E9" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:"12px", marginBottom:"28px" }}>
+          <div style={{ width:"44px", height:"44px", borderRadius:"12px", background:"linear-gradient(135deg,#2E7D32,#4CAF50)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"22px", boxShadow:"0 3px 10px rgba(46,125,50,0.3)" }}>⚡</div>
+          <div>
+            <div style={{ fontSize:"20px", fontWeight:"900", color:"#1B5E20" }}>Innovation Engine</div>
+            <div style={{ fontSize:"11px", color:"#888", letterSpacing:"0.1em", textTransform:"uppercase", fontWeight:"600" }}>Plukon Food Group</div>
+          </div>
+        </div>
+
+        <p style={{ color:"#555", fontSize:"14px", lineHeight:"1.7", marginBottom:"24px" }}>
+          Voer je Anthropic API sleutel in om te starten. De sleutel wordt lokaal opgeslagen in je browser en nergens anders verstuurd.
+        </p>
+
+        <div style={{ marginBottom:"8px" }}>
+          <label style={{ fontSize:"12px", fontWeight:"800", color:"#2E7D32", letterSpacing:"0.06em", textTransform:"uppercase", display:"block", marginBottom:"8px" }}>
+            🔑 Anthropic API Key
+          </label>
+          <input
+            type="password"
+            value={key}
+            onChange={e => setKey(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && testAndSave()}
+            placeholder="sk-ant-api03-..."
+            style={{ width:"100%", padding:"12px 14px", borderRadius:"10px", border:"2px solid #C8E6C9", fontSize:"14px", fontFamily:"'Nunito',sans-serif", outline:"none", boxSizing:"border-box", color:"#333" }}
+            onFocus={e => e.target.style.borderColor = "#2E7D32"}
+            onBlur={e => e.target.style.borderColor = "#C8E6C9"}
+          />
+        </div>
+
+        {error && <p style={{ color:"#E53935", fontSize:"12px", margin:"6px 0 12px", fontWeight:"600" }}>⚠ {error}</p>}
+
+        <button
+          onClick={testAndSave}
+          disabled={testing || !key}
+          style={{ width:"100%", padding:"14px", background: testing || !key ? "#ccc" : "linear-gradient(135deg,#2E7D32,#4CAF50)", color:"#fff", border:"none", borderRadius:"12px", fontSize:"15px", fontWeight:"900", cursor: testing || !key ? "default" : "pointer", marginTop:"12px", boxShadow: key && !testing ? "0 4px 14px rgba(46,125,50,0.3)" : "none", transition:"all 0.2s" }}
+        >
+          {testing ? "Verbinding testen..." : "Starten →"}
+        </button>
+
+        <div style={{ marginTop:"20px", padding:"14px", background:"#F9FBE7", borderRadius:"10px", border:"1px solid #DCEDC8" }}>
+          <p style={{ margin:"0 0 6px", fontSize:"12px", fontWeight:"800", color:"#558B2F" }}>📋 Hoe krijg ik een API sleutel?</p>
+          <p style={{ margin:0, fontSize:"12px", color:"#666", lineHeight:"1.6" }}>
+            Ga naar <strong>console.anthropic.com</strong> → maak een account → API Keys → Create Key. Kosten: ~€0,02 per concept generatie.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InnovationEngine() {
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem("plukon_api_key") || "");
+  const [step,   setStep]   = useState(0);
+  const [form,   setForm]   = useState({
+    retailer:[], country:[], trends:[], format:[], ingredients:[],
+    quality:"", price:[], grammage:[], persons:[], shelfLife:"", skus:[],
+    nutriTarget:"", saltPref:"", proteinPref:"", vegPref:"", brief:"",
+  });
+  const [done,   setDone]   = useState([]);
+  const [phase,  setPhase]  = useState("steps"); // steps | summary | demo | generating | results
+  const [concepts, setConcepts] = useState([]);
+  const [apiLog,   setApiLog]   = useState("");
+
+  const toggle = (field, val) => setForm(f=>({
+    ...f, [field]: f[field].includes(val)?f[field].filter(v=>v!==val):[...f[field],val],
+  }));
+
+  const advance = () => {
+    const id = STEPS[step].id;
+    setDone(d=>d.includes(id)?d:[...d,id]);
+    if(step < STEPS.length-1) setStep(s=>s+1); else setPhase("summary");
+  };
+
+  const buildPrompt = () => `Je bent een senior NPD specialist bij Plukon Food Group. Gebruik onderstaande trend intelligence van  om 4 onderscheidende, commercieel haalbare productconcepten te genereren.
+
+--- TREND INTELLIGENCE ---
+${TREND_CONTEXT}
+--- EINDE TREND INTELLIGENCE ---
+
+BRIEFING:
+- Retailer: ${form.retailer.join(", ")||"Vrij"}
+- Markt: ${form.country.join(", ")||"Vrij"}
+- Trends: ${form.trends.join(", ")||"Vrij"}
+- Format: ${form.format.join(", ")||"Vrij"}
+- Ingrediënten: ${form.ingredients.join(", ")||"Vrij"}
+- Kwaliteit: ${form.quality||"Vrij"}
+- Prijs: ${form.price.join(", ")||"Vrij"}
+- Grammage: ${form.grammage.join(", ")||"Vrij"}
+- Personen: ${form.persons.join(", ")||"Vrij"}
+- Houdbaarheid: ${form.shelfLife||"Vrij"}
+- SKU's: ${form.skus.join(", ")||"Vrij"}
+- Nutriscore doel: ${form.nutriTarget||"Vrij"}
+- Zout: ${form.saltPref||"Vrij"}
+- Eiwit: ${form.proteinPref||"Vrij"}
+- Groente-aandeel: ${form.vegPref||"Vrij"}
+- Extra brief: ${form.brief||"Geen"}
+
+VERPLICHT OUTPUT FORMAT — kopieer deze structuur exact 4x:
+
+## [Concrete productnaam] — [Pakkende tagline max 5 woorden]
+
+**Samenvatting**
+[Zin 1: wat is het product en wat maakt het uniek.] [Zin 2: welk consumentenprobleem lost het op.] [Zin 3: waarom past het bij de retailer en het moment.]
+
+**Doelconsument**
+[Leeftijd, levensstijl, aankoopmoment, motivatie — concreet en specifiek, geen generieke omschrijvingen]
+
+**Ingrediënten**
+[Ingrediënt 1 (X%), ingrediënt 2 (X%), ingrediënt 3 (X%), saus/dressing (X%), overig (X%). Allergenen: [lijst]. Clean label: [ja/nee + reden]]
+
+**Nutritie**
+- Eiwit: [Xg per portie]
+- Zout: [X,Xg per 100g]
+- Groente-aandeel: [X%]
+- Kcal: [X kcal per portie]
+- Verwachte Nutriscore: [A/B/C] — [één zin onderbouwing]
+
+**Specs**
+- Grammage: [Xg]
+- Consumentenprijs: [€X,XX incl. btw]
+- Houdbaarheid: [Ultravers/Vers/Hybride/Langer vers], [X] dagen
+- Verpakking: [type verpakking, materiaal, format]
+- SKU structuur: [SKU 1: naam], [SKU 2: naam], [SKU 3: naam indien van toepassing]
+
+**Trends**
+- [Trend 1]: [concrete uitleg waarom dit concept hierop inspeelt]
+- [Trend 2]: [concrete uitleg]
+- [Trend 3 indien relevant]: [concrete uitleg]
+
+**Retailfit**
+[Welk schapsegment, naast welke bestaande producten, waarom dit wit in het assortiment vult, verwacht price point vs concurrent]
+
+**Haalbaarheid**
+[Productietechnische complexiteit (laag/midden/hoog), benodigde lijn/apparatuur, go-to-market doorlooptijd inschatting]
+
+**Aandachtspunten**
+- [Concreet aandachtspunt 1 bij ontwikkeling of launch]
+- [Concreet aandachtspunt 2]
+
+Zorg voor 4 echt diverse concepten. Wees concreet: namen, smaken, ingrediënten, gramgewichten.
+
+STRIKTE OPMAAK- EN VOLLEDIGHEIDSREGELS:
+- Begin DIRECT met het eerste concept, GEEN inleiding, GEEN strategische noot, GEEN preamble
+- Gebruik EXACT de sectienames zoals hieronder aangegeven, niets meer, niets minder
+- Vul ELKE sectie volledig in — lege secties of "n.v.t." zijn NIET toegestaan
+- Gebruik GEEN markdown tabellen, GEEN --- scheidingslijnen
+- Elk concept heeft precies 9 secties in exact deze volgorde
+- Wees CONCREET: geen vage termen, altijd specifieke namen, grammen, prijzen, smaken
+- De 4 concepten moeten onderling DUIDELIJK verschillen in format, smaakprofiel en doelgroep`;
+
+  const generate = async () => {
+    setPhase("generating"); setConcepts([]); setApiLog("");
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access":"true",
+        },
+        body: JSON.stringify({ model:"claude-sonnet-4-6", max_tokens:4000, messages:[{ role:"user", content:buildPrompt() }] }),
+      });
+      let raw=""; try { raw=await res.text(); } catch(e){ setApiLog("Read error: "+e.message); setPhase("results"); return; }
+      let data; try { data=JSON.parse(raw); } catch(e){ setApiLog("Parse error ("+res.status+"): "+raw.slice(0,400)); setPhase("results"); return; }
+      if(!res.ok){ setApiLog("API error ("+res.status+"): "+(data?.error?.message||JSON.stringify(data))); setPhase("results"); return; }
+      const text=(data.content||[]).map(b=>b.type==="text"?b.text:"").filter(Boolean).join("\n");
+      if(!text.trim()){ setApiLog("Lege respons: "+JSON.stringify(data).slice(0,300)); setPhase("results"); return; }
+      setConcepts(text.split(/\n(?=## )/).filter(p=>p.trim()));
+    } catch(e){ setApiLog("Catch: "+e.message); }
+    setPhase("results");
+  };
+
+  const reset = () => { setStep(0); setForm({ retailer:[],country:[],trends:[],format:[],ingredients:[],quality:"",price:[],grammage:[],persons:[],shelfLife:"",skus:[],nutriTarget:"",saltPref:"",proteinPref:"",vegPref:"",brief:"" }); setDone([]); setConcepts([]); setPhase("steps"); setApiLog(""); };
+
+  const stepContent = () => {
+    switch(STEPS[step].id){
+      case "retailer":    return <div style={{display:"flex",flexWrap:"wrap",gap:"8px"}}>{RETAILERS.map(r=><Tag key={r} label={r} selected={form.retailer.includes(r)} onClick={()=>toggle("retailer",r)}/>)}</div>;
+      case "country":     return <div style={{display:"flex",flexWrap:"wrap",gap:"8px"}}>{COUNTRIES.map(c=><Tag key={c} label={c} selected={form.country.includes(c)} onClick={()=>toggle("country",c)}/>)}</div>;
+      case "trends":      return <div><p style={{color:"#666",fontSize:"13px",marginBottom:"10px",fontFamily:"'Nunito',sans-serif"}}>Meerdere mogelijk</p><div style={{display:"flex",flexWrap:"wrap",gap:"8px"}}>{TRENDS.map(t=><Tag key={t} label={t} selected={form.trends.includes(t)} onClick={()=>toggle("trends",t)}/>)}</div></div>;
+      case "format":      return <div style={{display:"flex",flexWrap:"wrap",gap:"8px"}}>{FORMATS.map(f=><Tag key={f} label={f} selected={form.format.includes(f)} onClick={()=>toggle("format",f)}/>)}</div>;
+      case "ingredients": return <div style={{display:"flex",flexWrap:"wrap",gap:"8px"}}>{INGREDIENT_DIRS.map(i=><Tag key={i} label={i} selected={form.ingredients.includes(i)} onClick={()=>toggle("ingredients",i)}/>)}</div>;
+      case "quality":     return <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>{QUALITY_TIERS.map(q=><div key={q.id} onClick={()=>setForm(f=>({...f,quality:q.label}))} style={{padding:"14px 16px",borderRadius:"10px",cursor:"pointer",transition:"all 0.15s",border:`2px solid ${form.quality===q.label?G:"#E8F5E9"}`,background:form.quality===q.label?GL:"#fff"}}><div style={{color:form.quality===q.label?G:"#333",fontWeight:"700",fontSize:"14px",fontFamily:"'Nunito',sans-serif"}}>{q.label}</div><div style={{color:"#888",fontSize:"12px",marginTop:"2px",fontFamily:"'Nunito',sans-serif"}}>{q.desc}</div></div>)}</div>;
+      case "specs": return (
+        <div style={{display:"flex",flexDirection:"column",gap:"20px"}}>
+          {[["💶 Consumentenprijs","price",PRICE_RANGES],["⚖️ Grammage","grammage",GRAMMAGES],["👥 Portie / Personen","persons",PERSONS],["📦 Aantal SKU's","skus",SKU_OPTIONS]].map(([lbl,fld,opts])=>(
+            <div key={fld}><p style={{color:G,fontSize:"12px",letterSpacing:"0.08em",textTransform:"uppercase",margin:"0 0 8px",fontFamily:"'Nunito',sans-serif",fontWeight:"800"}}>{lbl}</p><div style={{display:"flex",flexWrap:"wrap",gap:"8px"}}>{opts.map(o=><Tag key={o} label={o} selected={form[fld].includes(o)} onClick={()=>toggle(fld,o)}/>)}</div></div>
+          ))}
+          <div><p style={{color:G,fontSize:"12px",letterSpacing:"0.08em",textTransform:"uppercase",margin:"0 0 8px",fontFamily:"'Nunito',sans-serif",fontWeight:"800"}}>📅 Houdbaarheid</p>
+            <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>{SHELF_LIFE.map(s=><div key={s.id} onClick={()=>setForm(f=>({...f,shelfLife:s.label+" ("+s.desc+")"}))} style={{padding:"11px 14px",borderRadius:"8px",cursor:"pointer",transition:"all 0.15s",border:`2px solid ${form.shelfLife.startsWith(s.label)?G:"#E8F5E9"}`,background:form.shelfLife.startsWith(s.label)?GL:"#fff",display:"flex",alignItems:"center",justifyContent:"space-between"}}><span style={{color:form.shelfLife.startsWith(s.label)?G:"#333",fontWeight:"700",fontSize:"13px",fontFamily:"'Nunito',sans-serif"}}>{s.label}</span><span style={{color:"#888",fontSize:"12px",fontFamily:"'Nunito',sans-serif"}}>{s.desc}</span></div>)}</div>
+          </div>
+        </div>
+      );
+      case "nutrition": return (
+        <div style={{display:"flex",flexDirection:"column",gap:"20px"}}>
+          <div style={{background:GL,borderRadius:"10px",padding:"14px 16px",border:"1px solid #C8E6C9"}}>
+            <p style={{margin:"0 0 4px",fontSize:"12px",color:G,fontWeight:"800",fontFamily:"'Nunito',sans-serif",letterSpacing:"0.06em",textTransform:"uppercase"}}>💡 Clean Label standaard</p>
+            <p style={{margin:0,fontSize:"12px",color:"#555",fontFamily:"'Nunito',sans-serif",lineHeight:"1.6"}}>No E-nummers · No artificial flavours · No MSG · Korte ingrediëntenlijst · Herkenbare ingrediënten · Ondersteunt Nutriscore verbetering</p>
+          </div>
+          {[["🏅 Nutriscore doelstelling","nutriTarget",NUTRISCORE_TARGET],["🧂 Zoutgehalte","saltPref",SALT_PREF],["💪 Eiwitgehalte","proteinPref",PROTEIN_PREF],["🥦 Groente-aandeel","vegPref",VEG_PREF]].map(([lbl,fld,opts])=>(
+            <div key={fld}><p style={{color:G,fontSize:"12px",letterSpacing:"0.08em",textTransform:"uppercase",margin:"0 0 8px",fontFamily:"'Nunito',sans-serif",fontWeight:"800"}}>{lbl}</p>
+              <div style={{display:"flex",flexWrap:"wrap",gap:"8px"}}>{opts.map(o=><button key={o} onClick={()=>setForm(f=>({...f,[fld]:o}))} style={{padding:"7px 14px",borderRadius:"20px",border:`2px solid ${form[fld]===o?G:"#C8E6C9"}`,background:form[fld]===o?G:"#fff",color:form[fld]===o?"#fff":"#388E3C",fontSize:"13px",fontFamily:"'Nunito',sans-serif",cursor:"pointer",fontWeight:form[fld]===o?"700":"500",transition:"all 0.15s"}}>{o}</button>)}</div>
+            </div>
+          ))}
+        </div>
+      );
+      case "brief": return <div><p style={{color:"#666",fontSize:"13px",marginBottom:"10px",fontFamily:"'Nunito',sans-serif"}}>Retailer-eisen, verboden ingrediënten, certificeringen, aanleiding etc.</p><textarea value={form.brief} onChange={e=>setForm(f=>({...f,brief:e.target.value}))} placeholder="Bijv: AH vereist MSC-gecertificeerde vis, max 450 kcal, geen kunstmatige kleurstoffen, doelprijs €3,99..." style={{width:"100%",minHeight:"120px",background:"#fff",border:"2px solid #C8E6C9",borderRadius:"10px",color:"#333",padding:"14px",fontSize:"13px",fontFamily:"'Nunito',sans-serif",resize:"vertical",outline:"none",lineHeight:"1.6",boxSizing:"border-box"}} onFocus={e=>e.target.style.borderColor=G} onBlur={e=>e.target.style.borderColor="#C8E6C9"}/></div>;
+      default: return null;
+    }
+  };
+
+  const summaryRows = [
+    ["🏪 Retailer",       form.retailer.join(", ")],
+    ["🌍 Markt",          form.country.join(", ")],
+    ["📈 Trends",         form.trends.join(", ")],
+    ["🍽️ Format",         form.format.join(", ")],
+    ["🌿 Ingrediënten",   form.ingredients.join(", ")],
+    ["✅ Kwaliteit",      form.quality],
+    ["💶 Prijs",          form.price.join(", ")],
+    ["⚖️ Grammage",       form.grammage.join(", ")],
+    ["👥 Personen",       form.persons.join(", ")],
+    ["📅 Houdbaarheid",   form.shelfLife],
+    ["📦 SKU's",          form.skus.join(", ")],
+    ["🏅 Nutriscore",     form.nutriTarget],
+    ["🧂 Zout",           form.saltPref],
+    ["💪 Eiwit",          form.proteinPref],
+    ["🥦 Groente",        form.vegPref],
+    ["📝 Extra",          form.brief],
+  ].filter(([,v])=>v && v.trim());
+
+  if (!apiKey) return <ApiKeyScreen onSave={setApiKey} />;
+
+  return (
+    <div style={{ minHeight:"100vh", background:"linear-gradient(160deg, #F1F8E9 0%, #FFF8E1 100%)", fontFamily:"'Nunito', sans-serif" }}>
+      <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+
+      {/* Header */}
+      <div style={{ background:"#fff", borderBottom:"3px solid #E8F5E9", padding:"0 32px", display:"flex", alignItems:"center", justifyContent:"space-between", boxShadow:"0 2px 12px rgba(0,0,0,0.06)", height:"64px" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:"14px" }}>
+          {/* Plukon-inspired logo mark */}
+          <div style={{ width:"40px", height:"40px", borderRadius:"10px", background:`linear-gradient(135deg, ${G}, ${GM})`, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 3px 10px rgba(46,125,50,0.3)" }}>
+            <div style={{ width:"20px", height:"20px", position:"relative" }}>
+              <div style={{ position:"absolute", bottom:0, left:0, width:"8px", height:"12px", background:OL, borderRadius:"2px 2px 0 0", opacity:0.9 }}/>
+              <div style={{ position:"absolute", bottom:0, left:"6px", width:"8px", height:"16px", background:"#fff", borderRadius:"2px 2px 0 0", opacity:0.9 }}/>
+              <div style={{ position:"absolute", bottom:0, left:"12px", width:"8px", height:"10px", background:OL, borderRadius:"2px 2px 0 0", opacity:0.9 }}/>
+            </div>
+          </div>
+          <div>
+            <div style={{ display:"flex", alignItems:"baseline", gap:"8px" }}>
+              <span style={{ fontSize:"18px", fontWeight:"900", color:G, letterSpacing:"-0.5px" }}>Innovation</span>
+              <span style={{ fontSize:"18px", fontWeight:"900", color:O, letterSpacing:"-0.5px" }}>Engine</span>
+            </div>
+            <div style={{ fontSize:"11px", color:"#888", letterSpacing:"0.1em", textTransform:"uppercase", fontWeight:"600" }}>Plukon Food Group · NPD Tool</div>
+          </div>
+        </div>
+        <div style={{ display:"flex", alignItems:"center", gap:"10px" }}>
+          <div style={{ background:GL, borderRadius:"20px", padding:"4px 12px", fontSize:"11px", color:G, fontWeight:"700", border:`1px solid #C8E6C9` }}>
+            ✦  Trends 2026 ingebakken
+          </div>
+          {phase!=="steps" && <button onClick={reset} style={{ background:"#fff", border:`1px solid #E0E0E0`, color:"#666", padding:"7px 16px", borderRadius:"20px", cursor:"pointer", fontSize:"12px", fontWeight:"700" }}>↩ Opnieuw</button>}
+          <button onClick={()=>{ localStorage.removeItem("plukon_api_key"); setApiKey(""); }} style={{ background:"#fff", border:`1px solid #FFCDD2`, color:"#E53935", padding:"7px 14px", borderRadius:"20px", cursor:"pointer", fontSize:"11px", fontWeight:"700" }}>🔑 Sleutel</button>
+        </div>
+      </div>
+
+      <div style={{ maxWidth:"800px", margin:"0 auto", padding:"36px 24px" }}>
+
+        {/* STEPS */}
+        {phase==="steps" && (
+          <>
+            <StepDot steps={STEPS} currentStep={step} completedSteps={done} />
+            <div style={{ background:"#fff", borderRadius:"16px", padding:"28px", marginBottom:"20px", boxShadow:"0 4px 20px rgba(0,0,0,0.07)", border:"1px solid #E8F5E9" }}>
+              <div style={{ marginBottom:"22px" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:"10px", marginBottom:"6px" }}>
+                  <span style={{ fontSize:"24px" }}>{STEPS[step].icon}</span>
+                  <h2 style={{ margin:0, fontSize:"22px", fontWeight:"900", color:"#1B5E20" }}>{STEPS[step].label}</h2>
+                </div>
+                <div style={{ height:"3px", background:`linear-gradient(90deg, ${O}, ${OM}, transparent)`, borderRadius:"2px" }} />
+              </div>
+              {stepContent()}
+            </div>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <button onClick={()=>setStep(s=>Math.max(0,s-1))} disabled={step===0} style={{ background:"#fff", border:`1px solid #E0E0E0`, color:step===0?"#bbb":"#666", padding:"10px 22px", borderRadius:"20px", cursor:step===0?"default":"pointer", fontSize:"13px", fontWeight:"700" }}>← Vorige</button>
+              <button onClick={advance} style={{ background:`linear-gradient(135deg, ${O}, ${OM})`, color:"#fff", border:"none", padding:"12px 28px", borderRadius:"20px", cursor:"pointer", fontSize:"14px", fontWeight:"800", boxShadow:"0 4px 14px rgba(245,124,0,0.35)" }}>
+                {step<STEPS.length-1 ? "Volgende →" : "Naar overzicht →"}
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* SUMMARY */}
+        {phase==="summary" && (
+          <div style={{ background:"#fff", borderRadius:"16px", padding:"28px", boxShadow:"0 4px 20px rgba(0,0,0,0.07)", border:"1px solid #E8F5E9" }}>
+            <h2 style={{ margin:"0 0 6px", fontWeight:"900", fontSize:"24px", color:"#1B5E20" }}>Briefing Overzicht</h2>
+            <div style={{ height:"3px", background:`linear-gradient(90deg, ${O}, ${OM}, transparent)`, borderRadius:"2px", marginBottom:"20px" }} />
+            <div style={{ display:"flex", flexDirection:"column", gap:"6px", marginBottom:"24px" }}>
+              {summaryRows.map(([label,value])=>(
+                <div key={label} style={{ display:"flex", gap:"12px", padding:"9px 14px", background:"#FAFAFA", borderRadius:"8px", border:"1px solid #F1F8E9" }}>
+                  <span style={{ color:"#888", fontSize:"12px", minWidth:"130px", fontWeight:"600" }}>{label}</span>
+                  <span style={{ color:"#333", fontSize:"12px", fontWeight:"600", flex:1 }}>{value}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display:"flex", gap:"12px", flexWrap:"wrap" }}>
+              <button onClick={generate} style={{ background:`linear-gradient(135deg, ${G}, ${GM})`, color:"#fff", border:"none", padding:"14px 28px", borderRadius:"20px", cursor:"pointer", fontSize:"14px", fontWeight:"900", boxShadow:"0 4px 16px rgba(46,125,50,0.3)" }}>
+                ⚡ Genereer AI Concepten
+              </button>
+              <button onClick={()=>setPhase("demo")} style={{ background:"#fff", border:`2px solid ${O}`, color:O, padding:"14px 22px", borderRadius:"20px", cursor:"pointer", fontSize:"13px", fontWeight:"700" }}>
+                👁 Voorbeeldconcepten
+              </button>
+              <button onClick={()=>{ setPhase("steps"); setStep(STEPS.length-1); }} style={{ background:"#fff", border:"1px solid #E0E0E0", color:"#666", padding:"14px 18px", borderRadius:"20px", cursor:"pointer", fontSize:"13px", fontWeight:"600" }}>
+                ← Aanpassen
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* DEMO */}
+        {phase==="demo" && (
+          <>
+            <div style={{ marginBottom:"24px" }}>
+              <div style={{ display:"inline-flex", alignItems:"center", gap:"6px", background:OL, border:`1px solid ${OM}`, borderRadius:"20px", padding:"5px 14px", marginBottom:"12px" }}>
+                <span style={{ color:O, fontSize:"12px", fontWeight:"800", letterSpacing:"0.06em", textTransform:"uppercase" }}>✦ Voorbeeldconcepten — AH × High Protein RTE</span>
+              </div>
+              <h2 style={{ fontWeight:"900", fontSize:"26px", color:"#1B5E20", margin:"0 0 6px" }}>3 Fictieve Voorbeeldconcepten</h2>
+              <p style={{ color:"#888", fontSize:"13px", margin:0 }}>Gebaseerd op uw briefing · Clean Label standaard</p>
+            </div>
+            {DEMO_CONCEPTS.map(c=><DemoCard key={c.id} concept={c}/>)}
+            <div style={{ display:"flex", gap:"12px", flexWrap:"wrap", marginTop:"8px" }}>
+              <button onClick={generate} style={{ background:`linear-gradient(135deg, ${G}, ${GM})`, color:"#fff", border:"none", padding:"13px 26px", borderRadius:"20px", cursor:"pointer", fontSize:"13px", fontWeight:"900", boxShadow:"0 4px 14px rgba(46,125,50,0.25)" }}>⚡ Echte AI-concepten genereren</button>
+              <button onClick={()=>setPhase("summary")} style={{ background:"#fff", border:"1px solid #E0E0E0", color:"#666", padding:"13px 20px", borderRadius:"20px", cursor:"pointer", fontSize:"13px", fontWeight:"600" }}>← Terug naar briefing</button>
+            </div>
+          </>
+        )}
+
+        {/* GENERATING / RESULTS */}
+        {(phase==="generating"||phase==="results") && (
+          <>
+            <div style={{ marginBottom:"28px" }}>
+              <h2 style={{ fontWeight:"900", fontSize:"26px", color:"#1B5E20", margin:"0 0 6px" }}>
+                {phase==="generating" ? "Concepten worden gegenereerd..." : concepts.length>0 ? `${concepts.length} Nieuwe Productconcepten` : "Resultaat"}
+              </h2>
+              <p style={{ color:"#888", fontSize:"13px", margin:0 }}>
+                {phase==="generating" ? "AI verwerkt uw briefing en trend intelligence..." : `Gebaseerd op: ${[...form.retailer,...form.country].join(", ")||"uw briefing"}`}
+              </p>
+              {phase==="generating" && (
+                <div style={{ marginTop:"16px", height:"4px", background:"#E8F5E9", borderRadius:"2px", overflow:"hidden" }}>
+                  <div style={{ height:"100%", width:"40%", background:`linear-gradient(90deg, ${G}, ${GM}, ${O})`, borderRadius:"2px", animation:"slide 1.8s ease-in-out infinite" }} />
+                </div>
+              )}
+            </div>
+
+            {phase==="results" && apiLog && (
+              <div style={{ background:"#FFF3E0", border:`1px solid ${OM}`, borderRadius:"10px", padding:"14px 16px", marginBottom:"20px" }}>
+                <p style={{ margin:"0 0 4px", fontSize:"12px", fontWeight:"800", color:O, letterSpacing:"0.06em", textTransform:"uppercase" }}>⚠ API Debug Info</p>
+                <p style={{ margin:0, fontSize:"12px", color:"#555", fontFamily:"monospace", whiteSpace:"pre-wrap" }}>{apiLog}</p>
+              </div>
+            )}
+
+            {phase==="results" && concepts.map((c,i)=><ConceptCard key={i} concept={c} index={i}/>)}
+
+            {phase==="results" && (
+              <div style={{ marginTop:"24px", display:"flex", gap:"12px", flexWrap:"wrap" }}>
+                {concepts.length>0 && <button onClick={generate} style={{ background:"#fff", border:`2px solid ${G}`, color:G, padding:"10px 20px", borderRadius:"20px", cursor:"pointer", fontSize:"13px", fontWeight:"700" }}>⟳ Nieuwe variatie</button>}
+                <button onClick={()=>setPhase("summary")} style={{ background:"#fff", border:"1px solid #E0E0E0", color:"#666", padding:"10px 20px", borderRadius:"20px", cursor:"pointer", fontSize:"13px", fontWeight:"600" }}>← Briefing aanpassen</button>
+                <button onClick={reset} style={{ background:"#fff", border:"1px solid #E0E0E0", color:"#999", padding:"10px 20px", borderRadius:"20px", cursor:"pointer", fontSize:"13px", fontWeight:"600" }}>Nieuwe briefing</button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+      <style>{`@keyframes slide{0%{transform:translateX(-200%)}100%{transform:translateX(350%)}} @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
+}
+
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<InnovationEngine />);
+  </script>
+</body>
+</html>
