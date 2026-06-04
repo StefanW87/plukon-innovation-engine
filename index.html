@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Innovation Engine — Plukon Food Group</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #F1F8E9; font-family: 'Nunito', sans-serif; }
+    @keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+    @keyframes slide { 0%{transform:translateX(-200%)} 100%{transform:translateX(350%)} }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect } = React;
+
+// ── Brand ────────────────────────────────────────────────────────────────────
+const G = "#2E7D32"; const GM = "#4CAF50"; const GL = "#E8F5E9";
+const O = "#F57C00"; const OM = "#FF9800"; const OL = "#FFF3E0";
+
+// ── Retailer intelligence ────────────────────────────────────────────────────
+const RETAILER_PROFILES = {
+  "Albert Heijn":        { country:"NL", tier:"premium",    notes:"100% natuurlijk eis, clean label hard, breed publiek, innovatief, AH Excellent voor premium" },
+  "Plus":                { country:"NL", tier:"mainstream",  notes:"Kwaliteit en lokaal, iets ouder publiek, vers en ambachtelijk" },
+  "Lidl":                { country:"multi", tier:"value",    notes:"Prijsbewust, value for money, simpele clean specs, Duitsland: kwaliteitsbewust" },
+  "Aldi":                { country:"multi", tier:"value",    notes:"Harde discounter, minimale ingrediëntenlijst, scherpe prijs" },
+  "Delhaize":            { country:"BE",  tier:"premium",    notes:"Belgisch premium, foodie-georiënteerd, culinair bewust" },
+  "E.Leclerc":           { country:"FR",  tier:"mainstream", notes:"Frans, culinaire trots, authenticiteit belangrijk, vers boven convenience" },
+  "Carrefour":           { country:"FR",  tier:"mainstream", notes:"Frans mainstream, breed assortiment, prijs-kwaliteit" },
+  "Penny":               { country:"DE",  tier:"value",      notes:"Duits discounter, eenvoudige specs, prijs-gedreven" },
+  "Intermarché":         { country:"FR",  tier:"mainstream", notes:"Frans, coöperatief, lokale producten, vers vlees sterk" },
+  "Colruyt":             { country:"BE",  tier:"value",      notes:"Belgisch prijsleider, efficiency, trouwe klantenbasis" },
+  "Auchan":              { country:"FR",  tier:"mainstream", notes:"Frans hypermarkt, breed, internationaal georiënteerd" },
+  "REWE":                { country:"DE",  tier:"mainstream", notes:"Duits mainstream, kwaliteitsbewust, clean label groeiend" },
+  "Edeka":               { country:"DE",  tier:"mainstream", notes:"Duits kwaliteit, sterk vers, regionale producten belangrijk" },
+  "Netto Marken-Discount":{ country:"DE", tier:"value",      notes:"Duits discounter, simpele producten, prijs eerst" },
+  "Kaufland":            { country:"DE",  tier:"mainstream", notes:"Duits hypermarkt, breed, Oost-Europa aanwezig" },
+  "Globus":              { country:"DE",  tier:"mainstream", notes:"Duits hypermarkt, kwaliteit, vers en foodservice sterk" },
+  "Netto":               { country:"DK",  tier:"value",      notes:"Deens discounter, duurzaamheid speelt mee, design-gedreven" },
+  "ShopRite":            { country:"US",  tier:"mainstream", notes:"Amerikaans, groot volume, convenience sterk" },
+  "El Corte Inglés":     { country:"ES",  tier:"premium",    notes:"Spaans premium warenhuis, kwaliteit en presentatie" },
+  "Grand Frais":         { country:"FR",  tier:"premium",    notes:"Frans vers-specialist, hoge kwaliteit, foodie" },
+  "Provera":             { country:"IT",  tier:"mainstream", notes:"Italiaans, culinaire kwaliteit, vers" },
+  "Dino":                { country:"PL",  tier:"value",      notes:"Pools groeiend discounter, prijs-gedreven, jong publiek" },
+  "Biedronka":           { country:"PL",  tier:"value",      notes:"Pools marktleider discounter, volume, prijs" },
+  "Anders / Vrij":       { country:"multi", tier:"mainstream", notes:"Vrij te bepalen" },
+};
+
+// ── Country intelligence ─────────────────────────────────────────────────────
+const COUNTRY_PROFILES = {
+  "Nederland":            "Gemaksgericht, gezondheid en duurzaamheid belangrijk, open voor wereldse smaken, hoge adoptie convenience, clean label groeiend. Consumenten betalen voor kwaliteit mits zichtbaar.",
+  "Duitsland":            "Traditioneel en kwaliteitsbewust, sceptisch over te veel innovatie, clean label cruciaal, prijs-kwaliteitsverhouding leidend. Regionale herkomst scoort goed. Weinig openheid voor te exotisch.",
+  "België":               "Culinair bewust, Frans georiënteerd, authenticiteit belangrijk, bereid te betalen voor kwaliteit. Vlamingen praktisch, Walen culinair. Lokale producten goed ontvangen.",
+  "Denemarken":           "Duurzaamheid zeer belangrijk, design-gedreven verpakking, bereid meer te betalen voor ethisch product. Gezondheid en transparantie hoog. Scandinavische smaken (dille, mosterdzaad, zuur).",
+  "Frankrijk":            "Culinaire trots, authenticiteit boven alles, vers boven convenience, terroir en herkomst. Moeilijke markt voor buitenlandse merken. Traditionele smaken populair.",
+  "Polen":                "Prijs-gedreven, jong en groeiend middensegment, open voor nieuwe smaken, convenience groeiend. Traditioneel vlees sterk.",
+  "Spanje":               "Mediterraanse smaken, vers, sociale eetcultuur, tapas-formaten, prijsbewust in economische context.",
+  "Italië":               "Uiterste culinaire standaarden, authenticiteit, regionale smaken, kwaliteit boven gemak. Moeilijk voor niet-Italiaanse producten.",
+  "Verenigd Koninkrijk":  "Open voor wereldse smaken, convenience sterk, multicultureel, HFSS-wetgeving actief, clean label groeiend.",
+  "VS":                   "Volume en gemak, bold flavours, protein-trend sterk, convenience maaltijden groot, divers publiek.",
+  "Anders":               "Marktspecifieke analyse op basis van retailer en briefing.",
+};
+
+// ── Steps ────────────────────────────────────────────────────────────────────
+const STEPS = [
+  { id:"category",    label:"Categorie & Segment",    icon:"🐔" },
+  { id:"retailer",    label:"Retailer / Klant",       icon:"🏪" },
+  { id:"country",     label:"Land & Markt",           icon:"🌍" },
+  { id:"trends",      label:"Macro Trends",           icon:"📈" },
+  { id:"format",      label:"Productformat",          icon:"🍽️" },
+  { id:"ingredients", label:"Ingrediënten & Samenstelling", icon:"🌿" },
+  { id:"packaging",   label:"Verpakkingsvorm",        icon:"📦" },
+  { id:"quality",     label:"Kwaliteitseisen",        icon:"✅" },
+  { id:"specs",       label:"Product Specs",          icon:"📐" },
+  { id:"nutrition",   label:"Nutritie & Nutriscore",  icon:"🥗" },
+  { id:"output",      label:"Output Instelling",      icon:"⚙️" },
+  { id:"brief",       label:"Extra Briefing",         icon:"📝" },
+];
+
+// ── Data ─────────────────────────────────────────────────────────────────────
+const CATEGORIES = [
+  { id:"gevogelte",       icon:"🐔", label:"Gevogelte",       color:"#E8F5E9", border:"#4CAF50" },
+  { id:"convenience",     icon:"🍱", label:"Convenience",     color:"#E3F2FD", border:"#1976D2" },
+  { id:"complementaries", icon:"🥗", label:"Complementaries", color:"#F3E5F5", border:"#9C27B0" },
+  { id:"combi",           icon:"🔀", label:"Combinatie",      color:"#FFF8E1", border:"#F57C00" },
+];
+
+const KIP_SUBS    = ["Kipfilet (heel)", "Kipfilet (geselecteerd)", "Kipgehakt", "Kippendij", "Kip drumstick", "Kip vleugel", "Kip blokjes / reepjes", "Kip stokjes / spit", "Hele kip / roosterkip", "Kip hybride (+ plantaardig eiwit)", "Kip hybride (+ kalkoen)"];
+const KALKOEN_SUBS = ["Kalkoenfilet", "Kalkoengehakt", "Kalkoen hybride (+ plantaardig eiwit)"];
+const COMP_SUBS   = ["Kikkererwt-basis", "Mycoprotein (Quorn-stijl)", "Jackfruit", "Tempeh", "Tofu / Soja", "Lupine-eiwit", "Erwtenproteïne", "Combinatie plantaardig", "Flexitarisch (klein aandeel kip)"];
+const CONV_SUBS   = ["Kip-basis", "Kalkoen-basis", "Plantaardig-basis", "Vis-basis", "Gemengd eiwit", "Vrij / Engine kiest"];
+
+const RETAILERS = [
+  "Albert Heijn","Plus","Delhaize","E.Leclerc","Carrefour","Aldi","Penny",
+  "Intermarché","Colruyt","Auchan","REWE","Edeka","Netto Marken-Discount",
+  "Kaufland","Lidl","Globus","Netto","ShopRite","El Corte Inglés",
+  "Grand Frais","Provera","Dino","Biedronka","Anders / Vrij"
+];
+
+const COUNTRIES = ["Nederland","België","Duitsland","Denemarken","Verenigd Koninkrijk","Frankrijk","Polen","Spanje","Italië","VS","Anders"];
+
+const TRENDS = [
+  "Value for Money / Betaalbaarheid",
+  "Gezondheid / Voeding & Welzijn",
+  "Clean Label / Natuurlijk",
+  "High Protein / Fitness",
+  "Gemak / Ultra-convenience",
+  "Plant-Based / Vegan",
+  "Gut Health / Fermentatie",
+  "Global Fusion / Street Food",
+  "Maximalist Flavors / Swicy",
+  "Sustainability / Low Waste",
+  "Premiumisering",
+  "Snackification",
+  "Comfort Food Revival",
+  "Ethnisch / Authentiek",
+  "Craveable Texture",
+  "Crafted Condiments / Sauzen",
+  "Functionele voeding",
+  "Low Carb / Keto",
+];
+
+const FORMATS = ["Ready to Eat (RTE)","Ready to Heat (RTH)","Ready to Cook (RTC)","Steam Meal","Snack / On-the-go","Maaltijdsalade","Soep","Breakfast","Dessert","Maaltijdkit","Seizoensproduct","Vrij / Engine kiest"];
+
+const PROTEINS      = ["Kipfilet","Kipgehakt","Kippendij","Kip blokjes/reepjes","Kip stokjes","Kalkoenfilet","Kalkoengehakt","Kikkererwt","Mycoprotein","Jackfruit","Tempeh","Tofu","Lupine","Erwtenproteïne","Vis","Ei","Vrij / Engine kiest"];
+const CARBS         = ["Rijst","Aardappel (gekookt)","Krieltjes","Puree","Pasta","Couscous","Quinoa","Bulgur","Brood / Wrap","Groente als basis (low carb)","Geen (puur eiwit + groente)","Vrij / Engine kiest"];
+const VEGETABLES    = ["Paprika","Spinazie","Broccoli","Courgette","Wortel","Ui","Tomaat","Champignons","Edamame","Boerenkool","Prei","Seizoensgroente","Vrij / Engine kiest"];
+const PROTEIN_CLUSTERS = [
+  { label:"🐔 Gevogelte",        options:["Kipfilet","Kipgehakt","Kippendij","Kip blokjes / reepjes","Kip stokjes","Kalkoenfilet","Kalkoengehakt"] },
+  { label:"🥩 Rood vlees",       options:["Rund","Varken","Lam"] },
+  { label:"🌱 Alternatief eiwit", options:["Kikkererwt","Mycoprotein","Jackfruit","Tempeh","Tofu / Soja","Lupine / Erwtenproteïne"] },
+  { label:"🐟 Overig",           options:["Vis","Ei","Engine kiest"] },
+];
+const CARB_CLUSTERS = [
+  { label:"🌾 Granen & Rijst",  options:["Rijst","Couscous","Quinoa","Bulgur","Zilvervliesrijst"] },
+  { label:"🍝 Pasta & Noodles", options:["Pasta","Noodles","Wrap / Tortilla"] },
+  { label:"🥔 Aardappel",       options:["Aardappel (gekookt)","Krieltjes","Puree","Zoete aardappel"] },
+  { label:"🥗 Low carb",        options:["Groente als basis","Geen koolhydraat","Engine kiest"] },
+];
+const SAUCE_CLUSTERS = [
+  { label:"🥛 Romig",            options:["Roomsaus","Yoghurtsaus","Kaassaus"] },
+  { label:"🍅 Tomaat / Kruid",   options:["Tomatensaus","Kruidensaus","Pesto"] },
+  { label:"🌶️ Pikant / Exotisch", options:["Harissa","Peri-Peri","Curry","Teriyaki / Aziatisch"] },
+  { label:"🥗 Dressing / Licht", options:["Vinaigrette","Citrusdressing","Tahini"] },
+  { label:"🔥 BBQ / Grill",      options:["BBQ-saus","Honing-mosterd"] },
+  { label:"➖ Geen / Vrij",      options:["Geen saus","Engine kiest"] },
+];
+
+const PACKAGING     = ["Plastic zak / flowpack (kip)","MAP-tray (vlees/gevogelte)","Saladeschaal transparant (RTE)","Aluminium maaltijdschaal (RTH)","Kartonnen sleeve + tray","Pot / kuipje (sauzen, dips)","Wrap / sandwich verpakking","Sachet (toppings, sauzen los)","Diepvries zak","Vrij / Engine kiest"];
+const SEASONS       = ["Jaarrond","Lente","Zomer","Herfst","Winter","Feestdagen (o.a. Kerst / Pasen)"];
+
+const QUALITY_TIERS = [
+  { id:"economy",    label:"Economy / Budget",                   desc:"Maximale kostefficiëntie, simpele specs, discounter-geschikt" },
+  { id:"mainstream", label:"Mainstream",                         desc:"Standaard retailkwaliteit, brede acceptatie" },
+  { id:"premium",    label:"Premium / A-merk niveau",            desc:"Hogere ingrediëntkwaliteit, onderscheidend, AH Excellent-niveau" },
+  { id:"ultra",      label:"Ultra Premium / Specialty",          desc:"Finest quality, bijzondere grondstoffen, kleine volumes" },
+];
+
+const PRICE_RANGES  = ["€3,00 – €3,50","€3,50 – €4,50","€4,50 – €5,50","€5,50 – €6,50","> €6,50","Engine kiest"];
+const GRAMMAGES     = ["ca. 200g","ca. 250 – 300g","ca. 300 – 350g","ca. 350 – 400g","450g of meer","Engine kiest"];
+const PERSONS       = ["1 persoon","2 personen","3–4 personen","Familie (4+)","Sharing","Vrij / Engine kiest"];
+const SHELF_LIFE    = [
+  { id:"uv",  label:"Ultravers",           desc:"Tot ca. 5 dagen" },
+  { id:"v",   label:"Vers",                desc:"Tot ca. 8 dagen" },
+  { id:"h",   label:"Hybride",             desc:"Tot ca. 12 dagen" },
+  { id:"lv",  label:"Langer vers",         desc:"12+ dagen" },
+  { id:"amb", label:"Ambient / Diepvries", desc:"Lang houdbaar" },
+  { id:"vr",  label:"Vrij",               desc:"Concept bepaalt" },
+];
+const NUTRISCORE_T  = ["A (ideaal)","B","C","Geen voorkeur"];
+const SALT_PREF     = ["Laag (<0,8g/100g)","Matig (0,8–1,2g/100g)","Vrij"];
+const PROTEIN_PREF  = [">20g/portie",">25g/portie",">30g/portie","Vrij"];
+const VEG_PREF      = [">30% groente",">40% groente",">50% groente","Vrij"];
+const OUTPUT_COUNT  = ["1 product","2 producten","3 producten","4 producten","5 producten","6 producten"];
+
+const TREND_CONTEXT = `
+2026 EUROPESE FOOD TRENDS (prioriteit):
+1. Value for Money: 97% consumenten voelen kostenstijging. Maaltijden moeten betaalbaar, smaakvol en stretchen.
+2. Gezondheid & Welzijn: 87% EU consumenten zoeken proactieve gezondheidsproducten. Holistische benadering.
+3. Clean Label: 68% wil 100% natuurlijk. Geen E-nummers, korte ingrediëntenlijst, herkenbare ingrediënten.
+4. High Protein: 60% verhoogde eiwitinname. Multi-benefit, gepersonaliseerde nutritie.
+5. Gemak: 2 in 3 wil maaltijd klaar in <30 min. Min effort / max reward.
+6. Plant-Based: Groeiend maar mainstreaming vereist smaak én prijs gelijkheid.
+7. Street Food Discovery: Asian +50% YoY. Yuzu, gochujang, mango jalapeño, chamoy.
+8. Maximalist Flavors: Sweet +109%, umami +79%, smoky +46% YoY. Swicy groeit sterk.
+9. Sustainability: Verpakking en herkomst steeds belangrijker bij premium.
+10. Fermentatie / Gut Health: Kimchi, pickle, kefir — Gen Z drijft dit sterk.
+
+PLUKON FABRIEKSKENNIS:
+- Gevogelte: garen, frituren, voorbakken, marineren, coaten. Geen halal. Wel light mogelijk.
+- Wezep (Convenience): eigen sauzen, rijst, aardappelen. Rauw eiwit toegestaan in steam.
+- Vega Insiders (Complementaries): eigen fabriek, plantaardige eiwitten.
+- ALLERGEENREGIME: notenvrij (noten alleen via sachet). Sesam vermijden. Zo min mogelijk allergenen. Onvermijdbaar: gluten, ei, melk, soja.
+- RTE: Listeria afwezig in 25g verplicht.
+- Clean label = wens. AH 100% natuurlijk = harde eis.
+- SEIZOENEN Gevogelte: Kerst, Pasen, Zomer, Winter zijn de grote momenten.
+`;
+
+// ── UI Components ─────────────────────────────────────────────────────────────
+function Tag({ label, selected, onClick, color }) {
+  return (
+    <button onClick={onClick} style={{
+      padding:"7px 14px", borderRadius:"20px",
+      border:`2px solid ${selected ? (color||G) : "#C8E6C9"}`,
+      background: selected ? (color||G) : "#fff",
+      color: selected ? "#fff" : "#388E3C",
+      fontSize:"13px", fontFamily:"'Nunito',sans-serif",
+      cursor:"pointer", fontWeight: selected?"700":"500",
+      transition:"all 0.15s", boxShadow: selected?"0 2px 8px rgba(46,125,50,0.2)":"none",
+    }}>{label}</button>
+  );
+}
+
+function SingleSelect({ options, value, onChange }) {
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
+      {options.map(o => (
+        <div key={o.id||o} onClick={()=>onChange(o.id||o)} style={{
+          padding:"13px 16px", borderRadius:"10px", cursor:"pointer",
+          border:`2px solid ${(value===o.id||value===o)?(o.border||G):"#E8F5E9"}`,
+          background:(value===o.id||value===o)?(o.color||GL):"#fff",
+          transition:"all 0.15s",
+        }}>
+          <div style={{ display:"flex", alignItems:"center", gap:"10px" }}>
+            {o.icon && <span style={{fontSize:"20px"}}>{o.icon}</span>}
+            <div>
+              <div style={{ color:(value===o.id||value===o)?G:"#333", fontWeight:"700", fontSize:"14px", fontFamily:"'Nunito',sans-serif" }}>{o.label||o}</div>
+              {o.desc && <div style={{ color:"#888", fontSize:"12px", marginTop:"2px", fontFamily:"'Nunito',sans-serif" }}>{o.desc}</div>}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StepDot({ steps, currentStep, completedSteps }) {
+  return (
+    <div style={{ display:"flex", gap:"3px", marginBottom:"24px", flexWrap:"wrap", alignItems:"center" }}>
+      {steps.map((s,i) => {
+        const done = completedSteps.includes(s.id);
+        const active = i === currentStep;
+        return (
+          <div key={s.id} style={{ display:"flex", alignItems:"center", gap:"3px" }}>
+            <div style={{
+              width:"28px", height:"28px", borderRadius:"50%",
+              background: done?G:active?OL:"#F5F5F5",
+              border:`2px solid ${done?G:active?O:"#E0E0E0"}`,
+              display:"flex", alignItems:"center", justifyContent:"center",
+              fontSize:"10px", color:done?"#fff":active?O:"#9E9E9E",
+              fontWeight:"800", transition:"all 0.2s",
+              boxShadow:active?`0 0 0 3px ${OL}`:"none",
+            }}>{done?"✓":i+1}</div>
+            {i<steps.length-1 && <div style={{ width:"10px", height:"2px", background:done?GM:"#E0E0E0", borderRadius:"1px" }}/>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function NutriScoreBadge({ score }) {
+  const colors = { A:"#00843D",B:"#85BB2F",C:"#FFCC00",D:"#FF6600",E:"#E63312" };
+  return <span style={{ background:colors[score]||"#999", color:"#fff", borderRadius:"6px", padding:"3px 10px", fontSize:"11px", fontWeight:"800", fontFamily:"'Nunito',sans-serif" }}>NUTRI-SCORE {score}</span>;
+}
+
+// ── Concept parsing helper ───────────────────────────────────────────────────
+function parseConcept(concept, index) {
+  const lines = concept.split("\n").filter(Boolean);
+  const titleLine = lines[0]?.replace(/^#+\s*/,"").replace(/\*\*/g,"") || `Concept ${index+1}`;
+  const [titleName, tagline] = titleLine.includes(" — ") ? titleLine.split(" — ") : [titleLine,""];
+  const sections = {};
+  let currentSection = null, currentLines = [];
+  const sectionNames = ["Samenvatting","Doelconsument","Ingrediënten","Nutritie","Specs","Trends","Retailfit","Haalbaarheid","Aandachtspunten"];
+  lines.slice(1).forEach(line => {
+    const clean = line.replace(/\*\*/g,"").trim();
+    if (sectionNames.includes(clean)) {
+      if (currentSection) sections[currentSection] = currentLines.join("\n").trim();
+      currentSection = clean; currentLines = [];
+    } else if (currentSection) currentLines.push(line);
+  });
+  if (currentSection) sections[currentSection] = currentLines.join("\n").trim();
+
+  // Extract USPs from Samenvatting (3 sentences)
+  const summary = sections["Samenvatting"] || "";
+  const usps = summary.split(/\.\s+/).filter(s=>s.trim().length>10).slice(0,3).map(s=>s.replace(/\*\*/g,"").trim()+".");
+
+  // Extract key stats
+  const extract = (text, rx) => text?.match(rx)?.[1] || "—";
+  const grammage   = extract(sections["Specs"],    /Grammage[:\s]+(ca\.?\s*[\d\-–\s]+g[^\n,]*)/i) || extract(sections["Specs"], /Grammage[:\s]+([^\n,]+)/);
+  const prijs      = extract(sections["Specs"],    /Prijs[:\s]+(€[\d,\.]+)/);
+  const houdbaarheid = extract(sections["Specs"],  /Houdbaarheid[:\s]+([^\n,]+)/);
+  const eiwit      = extract(sections["Nutritie"], /Eiwit[:\s]+([\d]+g)/);
+  const nutriscore = sections["Nutritie"]?.match(/Nutriscore[:\s]+([A-E])/)?.[1] || "—";
+  const skus       = extract(sections["Specs"],    /SKU[^:]*:[\s]+([^\n]+)/);
+
+  const cleanTitle = titleName.replace(/[^a-zA-Z0-9 ]/g," ").trim().slice(0,50);
+  const imgPrompt = encodeURIComponent(`professional food photo ${cleanTitle} fresh ingredients colorful top view white plate`);
+  const imgUrl = `https://image.pollinations.ai/prompt/${imgPrompt}?width=600&height=400&nologo=true&seed=${(index+1)*9999}`;
+
+  return { titleName, tagline, sections, usps, grammage, prijs, houdbaarheid, eiwit, nutriscore, skus, imgUrl, sectionNames };
+}
+
+// ── Overview Card (grid view) ─────────────────────────────────────────────────
+function OverviewCard({ concept, index, onClick }) {
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgError,  setImgError]  = useState(false);
+  const p = parseConcept(concept, index);
+
+  return (
+    <div onClick={onClick} style={{
+      background:"#fff", borderRadius:"14px", overflow:"hidden",
+      boxShadow:"0 4px 16px rgba(0,0,0,0.08)", cursor:"pointer",
+      border:"1px solid #E8F5E9", transition:"all 0.2s",
+      display:"flex", flexDirection:"column",
+    }}
+      onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-4px)";e.currentTarget.style.boxShadow="0 12px 32px rgba(46,125,50,0.15)";}}
+      onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 4px 16px rgba(0,0,0,0.08)";}}
+    >
+      {/* Photo */}
+      <div style={{ position:"relative", height:"160px", background:"linear-gradient(135deg,#E8F5E9,#FFF8E1)", overflow:"hidden", flexShrink:0 }}>
+        {!imgLoaded && !imgError && (
+          <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <div style={{ width:"24px", height:"24px", border:`2px solid #C8E6C9`, borderTop:`2px solid ${G}`, borderRadius:"50%", animation:"spin 0.9s linear infinite" }}/>
+          </div>
+        )}
+        <img src={p.imgUrl} alt={p.titleName}
+          onLoad={()=>setImgLoaded(true)} onError={()=>setImgError(true)}
+          style={{ width:"100%", height:"100%", objectFit:"cover", opacity:imgLoaded?1:0, transition:"opacity 0.5s" }}/>
+        <div style={{ position:"absolute", inset:0, background:"linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.5) 100%)" }}/>
+        <div style={{ position:"absolute", top:"10px", left:"10px" }}>
+          <span style={{ background:O, color:"#fff", borderRadius:"6px", padding:"3px 9px", fontSize:"11px", fontWeight:"900", fontFamily:"'Nunito',sans-serif" }}>NPC {String(index+1).padStart(2,"0")}</span>
+        </div>
+        {p.nutriscore !== "—" && (
+          <div style={{ position:"absolute", top:"10px", right:"10px" }}>
+            <span style={{ background:{A:"#00843D",B:"#85BB2F",C:"#FFCC00",D:"#FF6600",E:"#E63312"}[p.nutriscore]||"#999", color:"#fff", borderRadius:"6px", padding:"3px 8px", fontSize:"10px", fontWeight:"800", fontFamily:"'Nunito',sans-serif" }}>
+              {p.nutriscore}
+            </span>
+          </div>
+        )}
+        <div style={{ position:"absolute", bottom:"8px", left:"10px", right:"10px" }}>
+          <h3 style={{ color:"#fff", fontFamily:"'Nunito',sans-serif", fontWeight:"900", fontSize:"14px", margin:0, textShadow:"0 1px 3px rgba(0,0,0,0.5)", lineHeight:"1.3" }}>{p.titleName}</h3>
+          {p.tagline && <p style={{ color:"rgba(255,255,255,0.8)", fontFamily:"'Nunito',sans-serif", fontSize:"11px", margin:"2px 0 0", fontStyle:"italic" }}>{p.tagline}</p>}
+        </div>
+      </div>
+
+      {/* Quick specs */}
+      <div style={{ display:"flex", borderBottom:"1px solid #F1F8E9", flexShrink:0 }}>
+        {[[p.prijs,"💶"],[p.grammage,"⚖️"],[p.eiwit,"💪"]].map(([val,icon],i)=>(
+          <div key={i} style={{ flex:1, padding:"7px 4px", textAlign:"center", borderRight:i<2?"1px solid #F1F8E9":"none" }}>
+            <div style={{ fontSize:"12px" }}>{icon}</div>
+            <div style={{ fontSize:"10px", color:"#388E3C", fontFamily:"'Nunito',sans-serif", fontWeight:"800", marginTop:"1px" }}>{val}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* USPs */}
+      <div style={{ padding:"12px 14px", flex:1 }}>
+        {p.usps.map((usp,i) => (
+          <div key={i} style={{ display:"flex", gap:"6px", marginBottom:"6px", alignItems:"flex-start" }}>
+            <span style={{ color:G, fontSize:"12px", flexShrink:0, marginTop:"1px" }}>✓</span>
+            <p style={{ margin:0, fontSize:"11px", color:"#555", fontFamily:"'Nunito',sans-serif", lineHeight:"1.5" }}>{usp}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* CTA */}
+      <div style={{ padding:"10px 14px", borderTop:"1px solid #F1F8E9", display:"flex", alignItems:"center", justifyContent:"space-between", background:"#FAFAFA", flexShrink:0 }}>
+        <span style={{ fontSize:"11px", color:G, fontWeight:"800", fontFamily:"'Nunito',sans-serif", letterSpacing:"0.04em", textTransform:"uppercase" }}>Bekijk one-pager</span>
+        <span style={{ color:G, fontSize:"14px" }}>→</span>
+      </div>
+    </div>
+  );
+}
+
+// ── One-pager view ────────────────────────────────────────────────────────────
+function OnePager({ concept, index, onBack }) {
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgError,  setImgError]  = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+  const p = parseConcept(concept, index);
+
+  const renderSection = (text) => {
+    if (!text) return <p style={{color:"#ccc",fontSize:"12px",fontStyle:"italic",fontFamily:"'Nunito',sans-serif"}}>—</p>;
+    return text.split("\n").map((line,i) => {
+      if (!line.trim()) return null;
+      const isBullet = line.trim().startsWith("-")||line.trim().startsWith("•");
+      const clean = line.replace(/^[-•]\s*/,"").replace(/\*\*/g,"").trim();
+      if (!clean) return null;
+      return <p key={i} style={{ margin:"3px 0", fontSize:"13px", fontFamily:"'Nunito',sans-serif", color:"#444", lineHeight:"1.65", paddingLeft:isBullet?"14px":"0" }}>{isBullet?`• ${clean}`:clean}</p>;
+    });
+  };
+
+  const sectionIcons = {"Samenvatting":"📋","Doelconsument":"🎯","Ingrediënten":"🌿","Nutritie":"🥗","Specs":"📦","Trends":"📈","Retailfit":"🏪","Haalbaarheid":"⚙️","Aandachtspunten":"⚠️"};
+
+  return (
+    <div style={{ animation:"fadeIn 0.3s ease" }}>
+      {/* Back button */}
+      <button onClick={onBack} style={{ background:"#fff", border:"1px solid #E0E0E0", color:"#666", padding:"8px 16px", borderRadius:"20px", cursor:"pointer", fontSize:"13px", fontWeight:"700", fontFamily:"'Nunito',sans-serif", marginBottom:"20px", display:"flex", alignItems:"center", gap:"6px" }}>
+        ← Terug naar overzicht
+      </button>
+
+      <div style={{ background:"#fff", borderRadius:"16px", overflow:"hidden", boxShadow:"0 4px 20px rgba(0,0,0,0.08)", border:"1px solid #E8F5E9" }}>
+        
+        {/* Hero photo + title */}
+        <div style={{ position:"relative", height:"280px", background:"linear-gradient(135deg,#E8F5E9,#FFF8E1)", overflow:"hidden" }}>
+          {!imgLoaded && !imgError && (
+            <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:"10px" }}>
+              <div style={{ width:"36px", height:"36px", border:`3px solid #C8E6C9`, borderTop:`3px solid ${G}`, borderRadius:"50%", animation:"spin 0.9s linear infinite" }}/>
+              <span style={{ fontSize:"12px", color:"#aaa", fontFamily:"'Nunito',sans-serif" }}>Productfoto genereren...</span>
+            </div>
+          )}
+          <img src={p.imgUrl} alt={p.titleName}
+            onLoad={()=>setImgLoaded(true)} onError={()=>setImgError(true)}
+            style={{ width:"100%", height:"100%", objectFit:"cover", opacity:imgLoaded?1:0, transition:"opacity 0.6s" }}/>
+          <div style={{ position:"absolute", inset:0, background:"linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, transparent 40%, rgba(0,0,0,0.65) 100%)" }}/>
+          <div style={{ position:"absolute", top:"16px", left:"16px", display:"flex", gap:"8px", alignItems:"center" }}>
+            <span style={{ background:O, color:"#fff", borderRadius:"8px", padding:"5px 14px", fontSize:"13px", fontWeight:"900", fontFamily:"'Nunito',sans-serif" }}>NPC {String(index+1).padStart(2,"0")}</span>
+            {p.nutriscore !== "—" && (
+              <span style={{ background:{A:"#00843D",B:"#85BB2F",C:"#FFCC00",D:"#FF6600",E:"#E63312"}[p.nutriscore]||"#999", color:"#fff", borderRadius:"8px", padding:"5px 12px", fontSize:"12px", fontWeight:"800", fontFamily:"'Nunito',sans-serif" }}>
+                NUTRI-SCORE {p.nutriscore}
+              </span>
+            )}
+          </div>
+          <div style={{ position:"absolute", bottom:"20px", left:"20px", right:"20px" }}>
+            <h2 style={{ color:"#fff", fontFamily:"'Nunito',sans-serif", fontWeight:"900", fontSize:"26px", margin:"0 0 4px", textShadow:"0 2px 8px rgba(0,0,0,0.4)" }}>{p.titleName}</h2>
+            {p.tagline && <p style={{ color:"rgba(255,255,255,0.85)", fontFamily:"'Nunito',sans-serif", fontSize:"15px", margin:0, fontStyle:"italic", fontWeight:"600" }}>{p.tagline}</p>}
+          </div>
+        </div>
+
+        {/* Specs bar */}
+        <div style={{ display:"flex", borderBottom:"1px solid #F1F8E9" }}>
+          {[["💶","Prijs",p.prijs],["⚖️","Grammage",p.grammage],["📅","Houdbaarheid",p.houdbaarheid],["💪","Eiwit",p.eiwit]].map(([icon,label,val],i)=>(
+            <div key={i} style={{ flex:1, padding:"14px 8px", textAlign:"center", borderRight:i<3?"1px solid #F1F8E9":"none" }}>
+              <div style={{ fontSize:"16px", marginBottom:"3px" }}>{icon}</div>
+              <div style={{ fontSize:"10px", color:"#aaa", fontFamily:"'Nunito',sans-serif", fontWeight:"700", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:"2px" }}>{label}</div>
+              <div style={{ fontSize:"13px", color:"#1B5E20", fontFamily:"'Nunito',sans-serif", fontWeight:"800" }}>{val}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* USPs */}
+        <div style={{ padding:"20px 24px", borderBottom:"1px solid #F1F8E9" }}>
+          <p style={{ margin:"0 0 12px", fontSize:"11px", fontWeight:"900", color:G, fontFamily:"'Nunito',sans-serif", letterSpacing:"0.08em", textTransform:"uppercase" }}>✦ Kernvoordelen</p>
+          <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
+            {p.usps.map((usp,i) => (
+              <div key={i} style={{ display:"flex", gap:"10px", alignItems:"flex-start" }}>
+                <div style={{ width:"22px", height:"22px", borderRadius:"50%", background:GL, border:`2px solid ${GM}`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, marginTop:"1px" }}>
+                  <span style={{ color:G, fontSize:"11px", fontWeight:"900" }}>{i+1}</span>
+                </div>
+                <p style={{ margin:0, fontSize:"14px", color:"#333", fontFamily:"'Nunito',sans-serif", lineHeight:"1.6", fontWeight:"500" }}>{usp}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* One-pager sections: 2-column grid */}
+        <div style={{ padding:"20px 24px", display:"grid", gridTemplateColumns:"1fr 1fr", gap:"16px" }}>
+          {["Samenvatting","Doelconsument","Ingrediënten","Nutritie","Specs","Trends","Retailfit","Haalbaarheid"].map(sec=>(
+            <div key={sec} style={{ padding:"14px", background:"#FAFAFA", borderRadius:"10px", border:"1px solid #F1F8E9" }}>
+              <p style={{ margin:"0 0 8px", fontSize:"11px", fontWeight:"900", color:G, fontFamily:"'Nunito',sans-serif", letterSpacing:"0.07em", textTransform:"uppercase" }}>
+                {sectionIcons[sec]} {sec}
+              </p>
+              <div>{renderSection(p.sections[sec])}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Aandachtspunten + details toggle */}
+        <div style={{ padding:"0 24px 20px" }}>
+          {p.sections["Aandachtspunten"] && (
+            <div style={{ padding:"14px", background:"#FFF8E1", borderRadius:"10px", border:`1px solid ${OM}`, marginBottom:"16px" }}>
+              <p style={{ margin:"0 0 8px", fontSize:"11px", fontWeight:"900", color:O, fontFamily:"'Nunito',sans-serif", letterSpacing:"0.07em", textTransform:"uppercase" }}>⚠️ Aandachtspunten</p>
+              <div>{renderSection(p.sections["Aandachtspunten"])}</div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── ConceptCard (kept for compatibility, redirects to new system) ─────────────
+function ConceptCard({ concept, index }) {
+  return null;
+}
+
+// ── Simple Concept Card (full detail, all sections) ─────────────────────────
+function SimpleConceptCard({ concept, index }) {
+  const [open, setOpen] = useState(true);
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgError, setImgError] = useState(false);
+  const p = parseConcept(concept, index);
+  const sectionIcons = {"Samenvatting":"📋","Doelconsument":"🎯","Ingrediënten":"🌿","Nutritie":"🥗","Specs":"📦","Trends":"📈","Retailfit":"🏪","Haalbaarheid":"⚙️","Aandachtspunten":"⚠️"};
+
+  const renderSection = (text) => {
+    if (!text) return <p style={{color:"#ccc",fontSize:"12px",fontStyle:"italic",fontFamily:"'Nunito',sans-serif"}}>—</p>;
+    return text.split("\n").map((line,i) => {
+      if (!line.trim()) return null;
+      const isBullet = line.trim().startsWith("-")||line.trim().startsWith("•");
+      const clean = line.replace(/^[-•]\s*/,"").replace(/\*\*/g,"").trim();
+      if (!clean) return null;
+      return <p key={i} style={{ margin:"3px 0", fontSize:"13px", fontFamily:"'Nunito',sans-serif", color:"#444", lineHeight:"1.65", paddingLeft:isBullet?"14px":"0" }}>{isBullet?`• ${clean}`:clean}</p>;
+    });
+  };
+
+  return (
+    <div style={{ background:"#fff", borderRadius:"16px", overflow:"hidden", marginBottom:"20px", boxShadow:"0 4px 16px rgba(0,0,0,0.07)", border:"1px solid #E8F5E9", animation:"fadeIn 0.4s ease" }}>
+
+      {/* Photo */}
+      <div style={{ position:"relative", height:"220px", background:"linear-gradient(135deg,#E8F5E9,#FFF8E1)", overflow:"hidden" }}>
+        {!imgLoaded && !imgError && (
+          <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:"10px" }}>
+            <div style={{ width:"32px", height:"32px", border:`3px solid #C8E6C9`, borderTop:`3px solid ${G}`, borderRadius:"50%", animation:"spin 0.9s linear infinite" }}/>
+            <span style={{ fontSize:"12px", color:"#aaa", fontFamily:"'Nunito',sans-serif" }}>Productfoto genereren...</span>
+          </div>
+        )}
+        <img src={p.imgUrl} alt={p.titleName}
+          onLoad={()=>setImgLoaded(true)} onError={()=>setImgError(true)}
+          style={{ width:"100%", height:"100%", objectFit:"cover", opacity:imgLoaded?1:0, transition:"opacity 0.6s" }}/>
+        <div style={{ position:"absolute", inset:0, background:"linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.6) 100%)" }}/>
+        <div style={{ position:"absolute", top:"14px", left:"14px", display:"flex", gap:"8px" }}>
+          <span style={{ background:O, color:"#fff", borderRadius:"8px", padding:"4px 12px", fontSize:"12px", fontWeight:"900", fontFamily:"'Nunito',sans-serif" }}>NPC {String(index+1).padStart(2,"0")}</span>
+          {p.nutriscore!=="—" && <span style={{ background:{A:"#00843D",B:"#85BB2F",C:"#FFCC00",D:"#FF6600",E:"#E63312"}[p.nutriscore]||"#999", color:"#fff", borderRadius:"8px", padding:"4px 10px", fontSize:"11px", fontWeight:"800", fontFamily:"'Nunito',sans-serif" }}>NUTRI-SCORE {p.nutriscore}</span>}
+        </div>
+        <div style={{ position:"absolute", bottom:"14px", left:"14px", right:"14px" }}>
+          <h3 style={{ color:"#fff", fontFamily:"'Nunito',sans-serif", fontWeight:"900", fontSize:"20px", margin:"0 0 3px", textShadow:"0 2px 6px rgba(0,0,0,0.4)" }}>{p.titleName}</h3>
+          {p.tagline && <p style={{ color:"rgba(255,255,255,0.85)", fontFamily:"'Nunito',sans-serif", fontSize:"13px", margin:0, fontStyle:"italic", fontWeight:"600" }}>{p.tagline}</p>}
+        </div>
+      </div>
+
+      {/* Specs bar */}
+      <div style={{ display:"flex", borderBottom:"1px solid #F1F8E9" }}>
+        {[["💶","Prijs",p.prijs],["⚖️","Grammage",p.grammage],["📅","Houdbaarheid",p.houdbaarheid],["💪","Eiwit",p.eiwit]].map(([icon,label,val],i)=>(
+          <div key={i} style={{ flex:1, padding:"10px 6px", textAlign:"center", borderRight:i<3?"1px solid #F1F8E9":"none" }}>
+            <div style={{ fontSize:"14px", marginBottom:"2px" }}>{icon}</div>
+            <div style={{ fontSize:"10px", color:"#aaa", fontFamily:"'Nunito',sans-serif", fontWeight:"700", textTransform:"uppercase", letterSpacing:"0.05em" }}>{label}</div>
+            <div style={{ fontSize:"12px", color:"#1B5E20", fontFamily:"'Nunito',sans-serif", fontWeight:"800", marginTop:"2px" }}>{val}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Toggle */}
+      <div onClick={()=>setOpen(!open)} style={{ padding:"11px 20px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center", background:"#FAFAFA", borderBottom:open?"1px solid #F1F8E9":"none" }}>
+        <span style={{ fontSize:"12px", fontWeight:"800", color:G, fontFamily:"'Nunito',sans-serif", letterSpacing:"0.05em", textTransform:"uppercase" }}>{open?"Verberg details":"Bekijk details"}</span>
+        <span style={{ color:G }}>{open?"▲":"▼"}</span>
+      </div>
+
+      {/* All sections */}
+      {open && (
+        <div style={{ padding:"20px" }}>
+          {p.sectionNames.map(sec=>(
+            <div key={sec} style={{ marginBottom:"16px", paddingBottom:"16px", borderBottom:"1px solid #F9FBE7" }}>
+              <p style={{ margin:"0 0 6px", fontSize:"11px", fontWeight:"900", color:G, fontFamily:"'Nunito',sans-serif", letterSpacing:"0.08em", textTransform:"uppercase" }}>
+                {sectionIcons[sec]} {sec}
+              </p>
+              <div>{renderSection(p.sections[sec])}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── API Key Screen ────────────────────────────────────────────────────────────
+function ApiKeyScreen({ onSave }) {
+  const [key, setKey] = useState("");
+  const [error, setError] = useState("");
+  const [testing, setTesting] = useState(false);
+
+  const testAndSave = async () => {
+    if (!key.startsWith("sk-ant-")) { setError("Sleutel moet beginnen met sk-ant-..."); return; }
+    setTesting(true); setError("");
+    try {
+      const res = await fetch("/api/generate", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json", "x-api-key":key },
+        body: JSON.stringify({ model:"claude-haiku-4-5-20251001", max_tokens:10, messages:[{role:"user",content:"Hi"}] }),
+      });
+      if (res.ok) { localStorage.setItem("plukon_api_key", key); onSave(key); }
+      else { const d = await res.json(); setError("Ongeldige sleutel: "+(d?.error?.message||res.status)); }
+    } catch(e) { setError("Verbindingsfout: "+e.message); }
+    setTesting(false);
+  };
+
+  return (
+    <div style={{ minHeight:"100vh", background:"linear-gradient(160deg,#F1F8E9,#FFF8E1)", display:"flex", alignItems:"center", justifyContent:"center", padding:"24px" }}>
+      <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+      <div style={{ background:"#fff", borderRadius:"20px", padding:"40px", maxWidth:"440px", width:"100%", boxShadow:"0 8px 40px rgba(0,0,0,0.1)", border:"1px solid #E8F5E9" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:"12px", marginBottom:"28px" }}>
+          <div style={{ width:"44px", height:"44px", borderRadius:"12px", background:`linear-gradient(135deg,${G},${GM})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"22px", boxShadow:"0 3px 10px rgba(46,125,50,0.3)" }}>⚡</div>
+          <div>
+            <div style={{ fontSize:"20px", fontWeight:"900", color:"#1B5E20", fontFamily:"'Nunito',sans-serif" }}>Innovation Engine</div>
+            <div style={{ fontSize:"11px", color:"#888", letterSpacing:"0.1em", textTransform:"uppercase", fontWeight:"600", fontFamily:"'Nunito',sans-serif" }}>Plukon Food Group · v2.0</div>
+          </div>
+        </div>
+        <p style={{ color:"#555", fontSize:"14px", lineHeight:"1.7", marginBottom:"24px", fontFamily:"'Nunito',sans-serif" }}>Voer je Anthropic API sleutel in om te starten. De sleutel wordt lokaal opgeslagen in je browser.</p>
+        <label style={{ fontSize:"12px", fontWeight:"800", color:G, letterSpacing:"0.06em", textTransform:"uppercase", display:"block", marginBottom:"8px", fontFamily:"'Nunito',sans-serif" }}>🔑 Anthropic API Key</label>
+        <input type="password" value={key} onChange={e=>setKey(e.target.value)} onKeyDown={e=>e.key==="Enter"&&testAndSave()}
+          placeholder="sk-ant-api03-..."
+          style={{ width:"100%", padding:"12px 14px", borderRadius:"10px", border:"2px solid #C8E6C9", fontSize:"14px", fontFamily:"'Nunito',sans-serif", outline:"none", boxSizing:"border-box", color:"#333" }}
+          onFocus={e=>e.target.style.borderColor=G} onBlur={e=>e.target.style.borderColor="#C8E6C9"} />
+        {error && <p style={{ color:"#E53935", fontSize:"12px", margin:"6px 0 0", fontWeight:"600", fontFamily:"'Nunito',sans-serif" }}>⚠ {error}</p>}
+        <button onClick={testAndSave} disabled={testing||!key} style={{ width:"100%", padding:"14px", background:testing||!key?"#ccc":`linear-gradient(135deg,${G},${GM})`, color:"#fff", border:"none", borderRadius:"12px", fontSize:"15px", fontWeight:"900", cursor:testing||!key?"default":"pointer", marginTop:"16px", fontFamily:"'Nunito',sans-serif", boxShadow:key&&!testing?"0 4px 14px rgba(46,125,50,0.3)":"none" }}>
+          {testing?"Verbinding testen...":"Starten →"}
+        </button>
+        <div style={{ marginTop:"20px", padding:"14px", background:"#F9FBE7", borderRadius:"10px", border:"1px solid #DCEDC8" }}>
+          <p style={{ margin:"0 0 4px", fontSize:"12px", fontWeight:"800", color:"#558B2F", fontFamily:"'Nunito',sans-serif" }}>📋 Hoe krijg ik een API sleutel?</p>
+          <p style={{ margin:0, fontSize:"12px", color:"#666", lineHeight:"1.6", fontFamily:"'Nunito',sans-serif" }}>Ga naar <strong>console.anthropic.com</strong> → maak account → API Keys → Create Key. Kosten: ~€0,02 per generatie.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main App ──────────────────────────────────────────────────────────────────
+function InnovationEngine() {
+  const [apiKey, setApiKey] = useState(()=>localStorage.getItem("plukon_api_key")||"");
+  const [step, setStep]     = useState(0);
+  const [done, setDone]     = useState([]);
+  const [phase, setPhase]   = useState("steps");
+  const [concepts, setConcepts] = useState([]);
+  const [apiLog, setApiLog] = useState("");
+  const [selectedConcept, setSelectedConcept] = useState(null);
+  const [form, setForm]     = useState({
+    category:"", categorySubs:[],
+    retailer:[], country:[], trends:[], format:[],
+    protein:[], carbs:[], vegetables:[], sauce:[],
+    packaging:[], season:"",
+    quality:"", price:[], grammage:[], persons:[], shelfLife:"",
+    nutriTarget:[], proteinPref:[], vegPref:[],
+    outputCount:"4 producten", brief:"",
+  });
+
+  const toggle = (field, val) => setForm(f=>({ ...f, [field]: f[field].includes(val)?f[field].filter(v=>v!==val):[...f[field],val] }));
+  const setSingle = (field, val) => setForm(f=>({...f, [field]:val}));
+
+  const advance = () => {
+    const id = STEPS[step].id;
+    setDone(d=>d.includes(id)?d:[...d,id]);
+    if (step < STEPS.length-1) setStep(s=>s+1); else setPhase("summary");
+  };
+
+  const reset = () => {
+    setStep(0); setDone([]); setConcepts([]); setPhase("steps"); setApiLog("");
+    setForm({ category:"", categorySubs:[], retailer:[], country:[], trends:[], format:[], protein:[], carbs:[], vegetables:[], sauce:[], packaging:[], season:"", quality:"", price:[], grammage:[], persons:[], shelfLife:"", nutriTarget:[], proteinPref:[], vegPref:[], outputCount:"4 producten", brief:"" });
+  };
+
+  // Build retailer + country intelligence string
+  const getMarketIntel = () => {
+    const parts = [];
+    form.retailer.forEach(r => {
+      const p = RETAILER_PROFILES[r];
+      if (p) parts.push(`${r}: ${p.notes}`);
+    });
+    form.country.forEach(c => {
+      const p = COUNTRY_PROFILES[c];
+      if (p) parts.push(`Consument ${c}: ${p}`);
+    });
+    return parts.join("\n");
+  };
+
+  const buildPrompt = () => {
+    const n = parseInt(((form.outputCount||"4 producten").match(/\d+/)||["4"])[0]);
+    const marketIntel = getMarketIntel();
+    return `TAAK: Genereer precies ${n} productconcepten voor Plukon Food Group NPD pipeline 2026.
+
+CATEGORIE: ${form.category||"Vrij"} ${form.categorySubs.length?`(${form.categorySubs.join(", ")})`: ""}
+RETAILER: ${form.retailer.join(", ")||"Vrij"}
+MARKT: ${form.country.join(", ")||"Vrij"}
+TRENDS: ${form.trends.join(", ")||"Vrij"}
+FORMAT: ${form.format.join(", ")||"Vrij"}
+EIWIT: ${form.protein.join(", ")||"Vrij"}
+KOOLHYDRATEN: ${form.carbs.join(", ")||"Vrij"}
+GROENTEN: ${form.vegetables.join(", ")||"Vrij"}
+SAUS: ${form.sauce.join(", ")||"Vrij"}
+VERPAKKING: ${form.packaging.join(", ")||"Vrij"}
+SEIZOEN: ${form.season||"Jaarrond"}
+KWALITEIT: ${form.quality||"Vrij"}
+PRIJS: ${form.price.join(", ")||"Vrij"}
+GRAMMAGE: ${form.grammage.join(", ")||"Vrij"}
+PERSONEN: ${form.persons.join(", ")||"Vrij"}
+HOUDBAARHEID: ${form.shelfLife||"Vrij"}
+NUTRISCORE DOEL: ${(form.nutriTarget||[]).join(", ")||"Engine kiest"}
+EIWIT DOEL: ${(form.proteinPref||[]).join(", ")||"Engine kiest"}
+GROENTE AANDEEL: ${(form.vegPref||[]).join(", ")||"Engine kiest"}
+EXTRA: ${form.brief||"Geen"}
+
+MARKT & RETAILER INTELLIGENTIE:
+${marketIntel||"Geen specifieke marktinformatie"}
+
+TREND & FABRIEKSCONTEXT:
+${TREND_CONTEXT}
+
+VERPLICHT FORMAT — gebruik dit EXACT voor elk concept:
+
+## [Productnaam] — [Tagline max 5 woorden]
+
+**Samenvatting**
+[3 zinnen: wat is het, waarom uniek, voor wie en wanneer]
+
+**Doelconsument**
+[Leeftijd, levensstijl, aankoopmoment, motivatie — specifiek voor de opgegeven markt en retailer]
+
+**Ingrediënten**
+[Alle kern-ingrediënten met percentages, allergenen, clean label status]
+
+**Nutritie**
+- Eiwit: [Xg per portie]
+- Zout: [X,Xg per 100g]
+- Groente-aandeel: [X%]
+- Kcal: [X kcal per portie]
+- Nutriscore: [A/B/C] — [onderbouwing]
+
+**Specs**
+- Grammage: [Xg]
+- Prijs: [€X,XX]
+- Houdbaarheid: [categorie, X dagen]
+- Verpakking: [type]
+- SKU's: [varianten]
+
+**Trends**
+- [Trend 1]: [waarom dit concept hierop inspeelt]
+- [Trend 2]: [waarom]
+- [Trend 3]: [waarom]
+
+**Retailfit**
+[Schapsegment, positionering, wit in assortiment, consumentfit voor opgegeven retailer en markt]
+
+**Haalbaarheid**
+[Productiecomplexiteit laag/midden/hoog, welke Plukon fabriek, doorlooptijd]
+
+**Aandachtspunten**
+- [Concreet punt 1]
+- [Concreet punt 2]
+
+REGELS:
+1. Begin DIRECT met ## — geen inleiding
+2. Vul ELKE sectie volledig in — geen lege velden
+3. Geen markdown tabellen, geen --- lijnen
+4. Wees concreet: specifieke smaken, grammen, prijzen
+5. Pas doelconsument en retailfit AAN op de opgegeven markt/retailer
+6. Check allergeenregime: geen noten direct in product, sesam vermijden
+7. ${n} concepten — duidelijk verschillend in smaak, doelgroep en format`;
+  };
+
+  const generate = async () => {
+    setPhase("generating"); setConcepts([]); setApiLog(""); setSelectedConcept(null);
+    try {
+      const res = await fetch("/api/generate", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json", "x-api-key":apiKey },
+        body: JSON.stringify({ model:"claude-sonnet-4-6", max_tokens:6000, messages:[{role:"user",content:buildPrompt()}] }),
+      });
+      let raw=""; try{raw=await res.text();}catch(e){setApiLog("Read error: "+e.message);setPhase("results");return;}
+      let data; try{data=JSON.parse(raw);}catch(e){setApiLog("Parse error: "+raw.slice(0,300));setPhase("results");return;}
+      if(!res.ok){setApiLog("API error ("+res.status+"): "+(data?.error?.message||JSON.stringify(data)));setPhase("results");return;}
+      const text=(data.content||[]).map(b=>b.type==="text"?b.text:"").filter(Boolean).join("\n");
+      if(!text.trim()){setApiLog("Lege respons: "+JSON.stringify(data).slice(0,300));setPhase("results");return;}
+      setConcepts(text.split(/\n(?=## )/).filter(p=>p.trim()));
+    } catch(e){setApiLog("Fout: "+e.message);}
+    setPhase("results");
+  };
+
+  const stepContent = () => {
+    switch(STEPS[step].id) {
+
+      case "category": return (
+        <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
+          {CATEGORIES.map(cat=>(
+            <div key={cat.id} onClick={()=>setSingle("category",cat.id)} style={{ padding:"16px 18px", borderRadius:"10px", cursor:"pointer", border:`2px solid ${form.category===cat.id?cat.border:"#E8F5E9"}`, background:form.category===cat.id?cat.color:"#fff", transition:"all 0.15s", display:"flex", alignItems:"center", gap:"12px" }}>
+              <span style={{fontSize:"24px"}}>{cat.icon}</span>
+              <span style={{ fontWeight:"800", fontSize:"15px", color:form.category===cat.id?G:"#333", fontFamily:"'Nunito',sans-serif" }}>{cat.label}</span>
+              {form.category===cat.id && <span style={{marginLeft:"auto",color:cat.border,fontSize:"16px"}}>✓</span>}
+            </div>
+          ))}
+        </div>
+      );
+
+      case "retailer": return (
+        <div style={{display:"flex",flexWrap:"wrap",gap:"8px"}}>
+          {RETAILERS.map(r=><Tag key={r} label={r} selected={form.retailer.includes(r)} onClick={()=>toggle("retailer",r)}/>)}
+        </div>
+      );
+
+      case "country": return (
+        <div style={{display:"flex",flexWrap:"wrap",gap:"8px"}}>
+          {COUNTRIES.map(c=><Tag key={c} label={c} selected={form.country.includes(c)} onClick={()=>toggle("country",c)}/>)}
+        </div>
+      );
+
+      case "trends": return (
+        <div>
+          <p style={{color:"#666",fontSize:"13px",marginBottom:"10px",fontFamily:"'Nunito',sans-serif"}}>Meerdere mogelijk</p>
+          <div style={{display:"flex",flexWrap:"wrap",gap:"8px"}}>
+            {TRENDS.map((t,i)=>(
+              <div key={t} style={{position:"relative"}}>
+                <Tag label={t} selected={form.trends.includes(t)} onClick={()=>toggle("trends",t)}/>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
+      case "format": return <div style={{display:"flex",flexWrap:"wrap",gap:"8px"}}>{FORMATS.map(f=><Tag key={f} label={f} selected={form.format.includes(f)} onClick={()=>toggle("format",f)}/>)}</div>;
+
+      case "ingredients": return (
+        <div style={{display:"flex",flexDirection:"column",gap:"24px"}}>
+          <div>
+            <p style={{color:G,fontSize:"12px",letterSpacing:"0.08em",textTransform:"uppercase",margin:"0 0 12px",fontFamily:"'Nunito',sans-serif",fontWeight:"800"}}>💪 Eiwitbron</p>
+            <div style={{display:"flex",flexWrap:"wrap",gap:"8px"}}>
+              {PROTEIN_CLUSTERS.map(cluster=>(
+                <button key={cluster.label} onClick={()=>toggle("protein",cluster.label)} style={{
+                  padding:"9px 16px", borderRadius:"20px",
+                  border:`2px solid ${form.protein.includes(cluster.label)?G:"#C8E6C9"}`,
+                  background:form.protein.includes(cluster.label)?G:"#fff",
+                  color:form.protein.includes(cluster.label)?"#fff":"#388E3C",
+                  fontSize:"13px", fontFamily:"'Nunito',sans-serif",
+                  cursor:"pointer", fontWeight:form.protein.includes(cluster.label)?"700":"500",
+                  transition:"all 0.15s",
+                }}>{cluster.label}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p style={{color:G,fontSize:"12px",letterSpacing:"0.08em",textTransform:"uppercase",margin:"0 0 12px",fontFamily:"'Nunito',sans-serif",fontWeight:"800"}}>🌾 Koolhydraat component</p>
+            <div style={{display:"flex",flexWrap:"wrap",gap:"8px"}}>
+              {CARB_CLUSTERS.map(cluster=>(
+                <button key={cluster.label} onClick={()=>toggle("carbs",cluster.label)} style={{
+                  padding:"9px 16px", borderRadius:"20px",
+                  border:`2px solid ${form.carbs.includes(cluster.label)?G:"#C8E6C9"}`,
+                  background:form.carbs.includes(cluster.label)?G:"#fff",
+                  color:form.carbs.includes(cluster.label)?"#fff":"#388E3C",
+                  fontSize:"13px", fontFamily:"'Nunito',sans-serif",
+                  cursor:"pointer", fontWeight:form.carbs.includes(cluster.label)?"700":"500",
+                  transition:"all 0.15s",
+                }}>{cluster.label}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p style={{color:G,fontSize:"12px",letterSpacing:"0.08em",textTransform:"uppercase",margin:"0 0 12px",fontFamily:"'Nunito',sans-serif",fontWeight:"800"}}>🫙 Saus / Dressing</p>
+            <div style={{display:"flex",flexWrap:"wrap",gap:"8px"}}>
+              {SAUCE_CLUSTERS.map(cluster=>(
+                <button key={cluster.label} onClick={()=>toggle("sauce",cluster.label)} style={{
+                  padding:"9px 16px", borderRadius:"20px",
+                  border:`2px solid ${form.sauce.includes(cluster.label)?G:"#C8E6C9"}`,
+                  background:form.sauce.includes(cluster.label)?G:"#fff",
+                  color:form.sauce.includes(cluster.label)?"#fff":"#388E3C",
+                  fontSize:"13px", fontFamily:"'Nunito',sans-serif",
+                  cursor:"pointer", fontWeight:form.sauce.includes(cluster.label)?"700":"500",
+                  transition:"all 0.15s",
+                }}>{cluster.label}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+
+      case "packaging": return (
+        <div>
+          
+          <div style={{display:"flex",flexWrap:"wrap",gap:"8px",marginBottom:"20px"}}>
+            {PACKAGING.map(p=><Tag key={p} label={p} selected={form.packaging.includes(p)} onClick={()=>toggle("packaging",p)}/>)}
+          </div>
+          <div>
+            <p style={{color:G,fontSize:"12px",letterSpacing:"0.08em",textTransform:"uppercase",margin:"0 0 8px",fontFamily:"'Nunito',sans-serif",fontWeight:"800"}}>🗓️ Seizoen</p>
+            <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
+              {SEASONS.map(s=>(
+                <div key={s} onClick={()=>setSingle("season",s)} style={{ padding:"11px 14px", borderRadius:"8px", cursor:"pointer", border:`2px solid ${form.season===s?G:"#E8F5E9"}`, background:form.season===s?GL:"#fff", display:"flex", alignItems:"center", justifyContent:"space-between", transition:"all 0.15s" }}>
+                  <span style={{color:form.season===s?G:"#333",fontWeight:"700",fontSize:"13px",fontFamily:"'Nunito',sans-serif"}}>{s}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+
+      case "quality": return (
+        <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
+          {QUALITY_TIERS.map(q=>(
+            <div key={q.id} onClick={()=>setSingle("quality",q.label)} style={{ padding:"14px 16px", borderRadius:"10px", cursor:"pointer", border:`2px solid ${form.quality===q.label?G:"#E8F5E9"}`, background:form.quality===q.label?GL:"#fff", transition:"all 0.15s" }}>
+              <div style={{color:form.quality===q.label?G:"#333",fontWeight:"700",fontSize:"14px",fontFamily:"'Nunito',sans-serif"}}>{q.label}</div>
+              <div style={{color:"#888",fontSize:"12px",marginTop:"2px",fontFamily:"'Nunito',sans-serif"}}>{q.desc}</div>
+            </div>
+          ))}
+        </div>
+      );
+
+      case "specs": return (
+        <div style={{display:"flex",flexDirection:"column",gap:"20px"}}>
+          {[["💶 Consumentenprijs","price",PRICE_RANGES],["⚖️ Grammage","grammage",GRAMMAGES],["👥 Portie / Personen","persons",PERSONS]].map(([lbl,fld,opts])=>(
+            <div key={fld}>
+              <p style={{color:G,fontSize:"12px",letterSpacing:"0.08em",textTransform:"uppercase",margin:"0 0 8px",fontFamily:"'Nunito',sans-serif",fontWeight:"800"}}>{lbl}</p>
+              <div style={{display:"flex",flexWrap:"wrap",gap:"8px"}}>{opts.map(o=><Tag key={o} label={o} selected={form[fld].includes(o)} onClick={()=>toggle(fld,o)}/>)}</div>
+            </div>
+          ))}
+          <div>
+            <p style={{color:G,fontSize:"12px",letterSpacing:"0.08em",textTransform:"uppercase",margin:"0 0 8px",fontFamily:"'Nunito',sans-serif",fontWeight:"800"}}>📅 Houdbaarheid</p>
+            <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
+              {SHELF_LIFE.map(s=>(
+                <div key={s.id} onClick={()=>setSingle("shelfLife",s.label+" ("+s.desc+")")} style={{ padding:"11px 14px", borderRadius:"8px", cursor:"pointer", border:`2px solid ${form.shelfLife.startsWith(s.label)?G:"#E8F5E9"}`, background:form.shelfLife.startsWith(s.label)?GL:"#fff", display:"flex", alignItems:"center", justifyContent:"space-between", transition:"all 0.15s" }}>
+                  <span style={{color:form.shelfLife.startsWith(s.label)?G:"#333",fontWeight:"700",fontSize:"13px",fontFamily:"'Nunito',sans-serif"}}>{s.label}</span>
+                  <span style={{color:"#888",fontSize:"12px",fontFamily:"'Nunito',sans-serif"}}>{s.desc}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+
+      case "nutrition": return (
+        <div style={{display:"flex",flexDirection:"column",gap:"20px"}}>
+          <div style={{background:GL,borderRadius:"10px",padding:"12px 14px",border:"1px solid #C8E6C9"}}>
+            <p style={{margin:"0 0 3px",fontSize:"12px",color:G,fontWeight:"800",fontFamily:"'Nunito',sans-serif",letterSpacing:"0.06em",textTransform:"uppercase"}}>💡 Clean Label Standaard</p>
+            <p style={{margin:0,fontSize:"12px",color:"#555",fontFamily:"'Nunito',sans-serif",lineHeight:"1.6"}}>Geen E-nummers · Geen kunstmatige aroma's · Geen MSG · Korte ingrediëntenlijst · Ondersteunt Nutriscore verbetering</p>
+          </div>
+          {[
+            ["🏅 Nutriscore doel","nutriTarget",["A","B","C","D","E","Geen voorkeur"]],
+            ["💪 Eiwitgehalte","proteinPref",["Laag","Middel","Hoog","Engine kiest"]],
+            ["🥦 Groente-aandeel","vegPref",VEG_PREF],
+          ].map(([lbl,fld,opts])=>(
+            <div key={fld} style={{marginBottom:"16px"}}>
+              <p style={{color:G,fontSize:"12px",letterSpacing:"0.08em",textTransform:"uppercase",margin:"0 0 8px",fontFamily:"'Nunito',sans-serif",fontWeight:"800"}}>{lbl}</p>
+              <div style={{display:"flex",flexWrap:"wrap",gap:"8px"}}>{opts.map(o=>(
+                <button key={o} onClick={()=>toggle(fld,o)}
+                  style={{ padding:"7px 14px", borderRadius:"20px",
+                    border:`2px solid ${form[fld].includes(o)?G:"#C8E6C9"}`,
+                    background:form[fld].includes(o)?G:"#fff",
+                    color:form[fld].includes(o)?"#fff":"#388E3C",
+                    fontSize:"13px", fontFamily:"'Nunito',sans-serif",
+                    cursor:"pointer", fontWeight:form[fld].includes(o)?"700":"500",
+                    transition:"all 0.15s" }}>{o}</button>
+              ))}</div>
+            </div>
+          ))}
+        </div>
+      );
+
+      case "output": return (
+        <div>
+          <p style={{color:"#666",fontSize:"13px",marginBottom:"12px",fontFamily:"'Nunito',sans-serif"}}>Hoeveel productconcepten wil je laten genereren?</p>
+          <div style={{display:"flex",flexWrap:"wrap",gap:"8px"}}>
+            {OUTPUT_COUNT.map(o=>(
+              <button key={o} onClick={()=>setSingle("outputCount",o)} style={{ padding:"10px 20px", borderRadius:"20px", border:`2px solid ${form.outputCount===o?G:"#C8E6C9"}`, background:form.outputCount===o?G:"#fff", color:form.outputCount===o?"#fff":"#388E3C", fontSize:"14px", fontFamily:"'Nunito',sans-serif", cursor:"pointer", fontWeight:form.outputCount===o?"800":"500", transition:"all 0.15s", boxShadow:form.outputCount===o?"0 2px 8px rgba(46,125,50,0.25)":"none" }}>{o}</button>
+            ))}
+          </div>
+          <div style={{marginTop:"20px",padding:"12px 14px",background:OL,borderRadius:"8px",border:`1px solid ${OM}`}}>
+            <p style={{margin:"0 0 4px",fontSize:"12px",fontWeight:"800",color:O,fontFamily:"'Nunito',sans-serif",letterSpacing:"0.06em",textTransform:"uppercase"}}>💡 Indicatie</p>
+            <p style={{margin:0,fontSize:"12px",color:"#666",fontFamily:"'Nunito',sans-serif",lineHeight:"1.6"}}>
+              {form.outputCount==="1 product"?"Diepgaand 1 concept — snel en gericht.":
+               form.outputCount==="2 concepten"?"2 contrasterende concepten — goed voor vergelijking.":
+               form.outputCount==="3 concepten"?"3 concepten — standaard voor eerste verkenning.":
+               form.outputCount==="4 producten"?"4 concepten — breed overzicht, aanbevolen voor brainstorm.":
+               form.outputCount==="5 concepten"?"5 concepten — uitgebreide verkenning.":
+               "6 concepten — maximale output, duurt iets langer (~45 sec)."}
+            </p>
+          </div>
+        </div>
+      );
+
+      case "brief": return (
+        <div>
+          <p style={{color:"#666",fontSize:"13px",marginBottom:"10px",fontFamily:"'Nunito',sans-serif"}}>Aanvullende eisen, retailer specs, verboden ingrediënten, aanleiding, etc.</p>
+          <textarea value={form.brief} onChange={e=>setSingle("brief",e.target.value)}
+            placeholder="Bijv: AH vereist MSC-gecertificeerde vis, max 450 kcal, doelprijs €3,99, geen sesamzaadjes, bestemd voor BBQ seizoen 2026..."
+            style={{ width:"100%", minHeight:"130px", background:"#fff", border:"2px solid #C8E6C9", borderRadius:"10px", color:"#333", padding:"14px", fontSize:"13px", fontFamily:"'Nunito',sans-serif", resize:"vertical", outline:"none", lineHeight:"1.6", boxSizing:"border-box" }}
+            onFocus={e=>e.target.style.borderColor=G} onBlur={e=>e.target.style.borderColor="#C8E6C9"}/>
+        </div>
+      );
+
+      default: return null;
+    }
+  };
+
+  const summaryRows = [
+    ["🐔 Categorie",      [form.category, ...form.categorySubs].filter(Boolean).join(" · ")],
+    ["🏪 Retailer",       form.retailer.join(", ")],
+    ["🌍 Markt",          form.country.join(", ")],
+    ["📈 Trends",         form.trends.join(", ")],
+    ["🍽️ Format",         form.format.join(", ")],
+    ["💪 Eiwit",          form.protein.join(", ")],
+    ["🌾 Koolhydraten",   form.carbs.join(", ")],
+    ["🫙 Saus",           form.sauce.join(", ")],
+    ["📦 Verpakking",     form.packaging.join(", ")],
+    ["🗓️ Seizoen",        form.season],
+    ["✅ Kwaliteit",      form.quality],
+    ["💶 Prijs",          form.price.join(", ")],
+    ["⚖️ Grammage",       form.grammage.join(", ")],
+    ["👥 Personen",       form.persons.join(", ")],
+    ["📅 Houdbaarheid",   form.shelfLife],
+    ["🏅 Nutriscore",     (form.nutriTarget||[]).join(", ")],
+    ["💪 Eiwit doel",     (form.proteinPref||[]).join(", ")],
+    ["🥦 Groente %",      (form.vegPref||[]).join(", ")],
+    ["⚙️ Output",         form.outputCount],
+    ["📝 Extra brief",    form.brief],
+  ].filter(([,v])=>v&&v.trim());
+
+  if (!apiKey) return <ApiKeyScreen onSave={setApiKey}/>;
+
+  return (
+    <div style={{ minHeight:"100vh", background:"linear-gradient(160deg,#F1F8E9 0%,#FFF8E1 100%)", fontFamily:"'Nunito',sans-serif" }}>
+      <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+
+      {/* Header */}
+      <div style={{ background:"#fff", borderBottom:"3px solid #E8F5E9", padding:"0 24px", display:"flex", alignItems:"center", justifyContent:"space-between", boxShadow:"0 2px 12px rgba(0,0,0,0.06)", height:"64px", position:"sticky", top:0, zIndex:100 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:"12px" }}>
+          <div style={{ width:"38px", height:"38px", borderRadius:"10px", background:`linear-gradient(135deg,${G},${GM})`, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 3px 10px rgba(46,125,50,0.3)" }}>
+            <span style={{fontSize:"18px"}}>⚡</span>
+          </div>
+          <div>
+            <div style={{ display:"flex", alignItems:"baseline", gap:"6px" }}>
+              <span style={{ fontSize:"17px", fontWeight:"900", color:G }}>Innovation</span>
+              <span style={{ fontSize:"17px", fontWeight:"900", color:O }}>Engine</span>
+              <span style={{ fontSize:"10px", background:OL, color:O, borderRadius:"4px", padding:"1px 6px", fontWeight:"800", letterSpacing:"0.06em" }}>v2.0</span>
+            </div>
+            <div style={{ fontSize:"10px", color:"#aaa", letterSpacing:"0.08em", textTransform:"uppercase", fontWeight:"600" }}>Plukon Food Group · NPD Tool</div>
+          </div>
+        </div>
+        <div style={{ display:"flex", gap:"8px", alignItems:"center" }}>
+          {phase!=="steps" && <button onClick={reset} style={{ background:"#fff", border:"1px solid #E0E0E0", color:"#666", padding:"7px 14px", borderRadius:"20px", cursor:"pointer", fontSize:"12px", fontWeight:"700" }}>↩ Opnieuw</button>}
+          <button onClick={()=>{localStorage.removeItem("plukon_api_key");setApiKey("");}} style={{ background:"#fff", border:"1px solid #FFCDD2", color:"#E53935", padding:"7px 12px", borderRadius:"20px", cursor:"pointer", fontSize:"11px", fontWeight:"700" }}>🔑</button>
+        </div>
+      </div>
+
+      <div style={{ maxWidth:"820px", margin:"0 auto", padding:"32px 20px" }}>
+
+        {/* STEPS */}
+        {phase==="steps" && (
+          <>
+            <StepDot steps={STEPS} currentStep={step} completedSteps={done}/>
+            <div style={{ background:"#fff", borderRadius:"16px", padding:"28px", marginBottom:"20px", boxShadow:"0 4px 20px rgba(0,0,0,0.07)", border:"1px solid #E8F5E9" }}>
+              <div style={{ marginBottom:"22px" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:"10px", marginBottom:"6px" }}>
+                  <span style={{fontSize:"24px"}}>{STEPS[step].icon}</span>
+                  <h2 style={{ margin:0, fontSize:"22px", fontWeight:"900", color:"#1B5E20", fontFamily:"'Nunito',sans-serif" }}>{STEPS[step].label}</h2>
+                </div>
+                <div style={{ height:"3px", background:`linear-gradient(90deg,${O},${OM},transparent)`, borderRadius:"2px" }}/>
+              </div>
+              {stepContent()}
+            </div>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <button onClick={()=>setStep(s=>Math.max(0,s-1))} disabled={step===0} style={{ background:"#fff", border:"1px solid #E0E0E0", color:step===0?"#ccc":"#666", padding:"10px 22px", borderRadius:"20px", cursor:step===0?"default":"pointer", fontSize:"13px", fontWeight:"700" }}>← Vorige</button>
+              <button onClick={advance} style={{ background:`linear-gradient(135deg,${O},${OM})`, color:"#fff", border:"none", padding:"12px 28px", borderRadius:"20px", cursor:"pointer", fontSize:"14px", fontWeight:"900", boxShadow:"0 4px 14px rgba(245,124,0,0.35)" }}>
+                {step<STEPS.length-1?"Volgende →":"Naar overzicht →"}
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* SUMMARY */}
+        {phase==="summary" && (
+          <div style={{ background:"#fff", borderRadius:"16px", padding:"28px", boxShadow:"0 4px 20px rgba(0,0,0,0.07)", border:"1px solid #E8F5E9" }}>
+            <h2 style={{ margin:"0 0 6px", fontWeight:"900", fontSize:"24px", color:"#1B5E20", fontFamily:"'Nunito',sans-serif" }}>Briefing Overzicht</h2>
+            <div style={{ height:"3px", background:`linear-gradient(90deg,${O},${OM},transparent)`, borderRadius:"2px", marginBottom:"20px" }}/>
+            <div style={{ display:"flex", flexDirection:"column", gap:"5px", marginBottom:"24px" }}>
+              {summaryRows.map(([label,value])=>(
+                <div key={label} style={{ display:"flex", gap:"12px", padding:"8px 14px", background:"#FAFAFA", borderRadius:"8px", border:"1px solid #F1F8E9" }}>
+                  <span style={{ color:"#888", fontSize:"12px", minWidth:"130px", fontWeight:"600", fontFamily:"'Nunito',sans-serif" }}>{label}</span>
+                  <span style={{ color:"#333", fontSize:"12px", fontWeight:"600", flex:1, fontFamily:"'Nunito',sans-serif" }}>{value}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display:"flex", gap:"12px", flexWrap:"wrap" }}>
+              <button onClick={generate} style={{ background:`linear-gradient(135deg,${G},${GM})`, color:"#fff", border:"none", padding:"14px 28px", borderRadius:"20px", cursor:"pointer", fontSize:"14px", fontWeight:"900", boxShadow:"0 4px 16px rgba(46,125,50,0.3)", fontFamily:"'Nunito',sans-serif" }}>⚡ Genereer Concepten</button>
+              <button onClick={()=>{setPhase("steps");setStep(STEPS.length-1);}} style={{ background:"#fff", border:"1px solid #E0E0E0", color:"#666", padding:"14px 18px", borderRadius:"20px", cursor:"pointer", fontSize:"13px", fontWeight:"600", fontFamily:"'Nunito',sans-serif" }}>← Aanpassen</button>
+            </div>
+          </div>
+        )}
+
+        {/* GENERATING */}
+        {phase==="generating" && (
+          <div style={{ background:"#fff", borderRadius:"16px", padding:"40px", textAlign:"center", boxShadow:"0 4px 20px rgba(0,0,0,0.07)", border:"1px solid #E8F5E9" }}>
+            <div style={{ width:"48px", height:"48px", border:`4px solid ${GL}`, borderTop:`4px solid ${G}`, borderRadius:"50%", animation:"spin 0.9s linear infinite", margin:"0 auto 20px" }}/>
+            <h2 style={{ fontWeight:"900", fontSize:"22px", color:"#1B5E20", margin:"0 0 8px", fontFamily:"'Nunito',sans-serif" }}>Concepten worden gegenereerd...</h2>
+            <p style={{ color:"#888", fontSize:"14px", fontFamily:"'Nunito',sans-serif" }}>AI genereert uw productvoorstellen — even geduld (~30 sec)</p>
+            <div style={{ marginTop:"24px", height:"4px", background:"#E8F5E9", borderRadius:"2px", overflow:"hidden" }}>
+              <div style={{ height:"100%", width:"40%", background:`linear-gradient(90deg,${G},${GM},${O})`, borderRadius:"2px", animation:"slide 1.8s ease-in-out infinite" }}/>
+            </div>
+          </div>
+        )}
+
+        {/* RESULTS */}
+        {phase==="results" && (
+          <>
+            <div style={{ marginBottom:"24px" }}>
+              <h2 style={{ fontWeight:"900", fontSize:"24px", color:"#1B5E20", margin:"0 0 4px", fontFamily:"'Nunito',sans-serif" }}>
+                {concepts.length>0 ? `${concepts.length} Productvoorstellen` : "Generatie voltooid"}
+              </h2>
+              <p style={{ color:"#888", fontSize:"13px", fontFamily:"'Nunito',sans-serif" }}>
+                {[form.category, ...form.retailer, ...form.country].filter(Boolean).join(" · ")||"Plukon NPD Pipeline 2026"}
+              </p>
+            </div>
+
+            {apiLog && (
+              <div style={{ background:"#FFF3E0", border:`1px solid ${OM}`, borderRadius:"10px", padding:"14px 16px", marginBottom:"20px" }}>
+                <p style={{ margin:"0 0 4px", fontSize:"12px", fontWeight:"800", color:O, letterSpacing:"0.06em", textTransform:"uppercase", fontFamily:"'Nunito',sans-serif" }}>⚠ Debug Info</p>
+                <p style={{ margin:0, fontSize:"12px", color:"#555", fontFamily:"monospace", whiteSpace:"pre-wrap" }}>{apiLog}</p>
+              </div>
+            )}
+
+            {concepts.map((c,i) => <SimpleConceptCard key={i} concept={c} index={i}/>)}
+
+            <div style={{ display:"flex", gap:"12px", flexWrap:"wrap", marginTop:"8px" }}>
+              {concepts.length>0 && <button onClick={generate} style={{ background:"#fff", border:`2px solid ${G}`, color:G, padding:"11px 20px", borderRadius:"20px", cursor:"pointer", fontSize:"13px", fontWeight:"700", fontFamily:"'Nunito',sans-serif" }}>⟳ Nieuwe variatie</button>}
+              <button onClick={()=>setPhase("summary")} style={{ background:"#fff", border:"1px solid #E0E0E0", color:"#666", padding:"11px 20px", borderRadius:"20px", cursor:"pointer", fontSize:"13px", fontWeight:"600", fontFamily:"'Nunito',sans-serif" }}>← Briefing aanpassen</button>
+              <button onClick={reset} style={{ background:"#fff", border:"1px solid #E0E0E0", color:"#999", padding:"11px 20px", borderRadius:"20px", cursor:"pointer", fontSize:"13px", fontWeight:"600", fontFamily:"'Nunito',sans-serif" }}>Nieuwe briefing</button>
+            </div>
+          </>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<InnovationEngine/>);
+</script>
+</body>
+</html>
